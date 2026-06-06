@@ -78,6 +78,22 @@ sentinel + checkpoints** (proven clean *and* error cases), with **`.file`** iden
 The exact error *line* is not available in any file yet (the controller shows "unrecognized file
 format: l<N>" only on-screen); checkpoint granularity is the current substitute for localization.
 
+## Variable RAM/file model + PC→controller inbound channel — `uservar` does NOT work
+- **Model `[CONFIRMED]`:** the controller holds variables in **RAM** (persistent across runs) and
+  flushes **RAM→file at run start *and* end**, but **never reads file→RAM**. So `uservar` is a
+  one-way **readback** channel (controller→file→PC, proven) and PC writes to it are ignored.
+- **Inbound test (45 s dwell, proper run):** pre-staged `#220` in the file before launch, and wrote a
+  second value to the file *during* the dwell. The macro captured `#221 = 0` (at start) and
+  `#222 = 0` (after the live write) — it read **RAM (0)** both times, never the file values. `#220`
+  kept my file edit only because the macro never *wrote* `#220` (unwritten vars aren't flushed over).
+- ⇒ **PC writes to `uservar` are invisible to a running/starting program.** A polling "dispatcher"
+  therefore **cannot receive commands over SMB** — a running program is sealed from SMB file changes.
+- **Implication:** a *live* inbound PC→controller channel needs **hardware** — the serial **M3K
+  keyboard port** (read live by firmware, even mid-run) or the external Start/Pause inputs.
+  **This is the concrete, evidence-based reason serial matters on the V4.1.**
+- Note: `G4 P<ms>` dwell **works** (visually confirmed ~45 s). An earlier "finished in ~2 s" reading
+  was a misread — it was the **stale RAM value flushed to the file at run start**, not completion.
+
 ## Homing & the Expert `sysstart` equivalent
 - The Expert's `sysstart.nc` runs **`M115`** ("execute standard startup homing") + gantry sync
   (`#883=#881`, `#1518=1`). **`M115` does NOT exist on the V4.1** `[CONFIRMED via V4.1 G/M-code manual]`.

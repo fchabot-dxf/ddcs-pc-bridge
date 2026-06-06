@@ -34,8 +34,10 @@ Status: ✅ done · 🔄 staged/in-progress · ⬜ to do. Detail/provenance live
       press (on its own, after a refresh, or via a hook firing the MDI-run `#2037`)?
 
 ## ⬜ To do — command channel & readback depth
-- [ ] **PC→controller variable write** — can the PC write a `uservar` slot over SMB and have the
-      controller read that value in a macro? (The inbound command path.)
+- [x] **PC→controller variable write** — ❌ **does NOT work.** Program reads vars from RAM; controller
+      flushes RAM→file at run start/end but never reads file→RAM. Staged `#221=0` and live `#222=0`
+      despite file edits → `uservar` is readback-only. A live inbound channel needs **hardware
+      (serial M3K / external inputs)**.
 - [ ] **Variable persistence across power cycle** — do PC/macro writes to #100–#499 survive a reboot?
 - [ ] **Alarm-code variable hunt** — find which system var holds the last error/alarm code so a hook can
       log *which* error (feeds A2b). Trigger several faults, diff uservar / read candidates.

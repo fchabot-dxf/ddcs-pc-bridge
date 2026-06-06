@@ -22,6 +22,8 @@ findings and assets separate so a fact proven on one is never silently assumed o
 | Network direction | controller **exposes** its disk; PC reads it `[CONFIRMED]` | both: exposes its disk **and** mounts PC-hosted `share` ("Net Disk") `[HYPOTHESIS]` |
 | Default IP scheme | static `192.168.2.x` (we set `10.0.0.50`) | controller `192.168.0.99`, host `192.168.0.100`; manual-IP only |
 | `uservar` store (400×f64, slot = `#var−100`, #100–#499) | ✅ `[CONFIRMED]` | likely same `[TO TEST]` |
+| `uservar` as PC→program *inbound* channel | ❌ `[CONFIRMED]` program reads RAM; file writes ignored (readback-only) | `[TO TEST]` |
+| Live inbound command channel to a running program | none over SMB → needs **serial/hardware** `[CONFIRMED]` | Modbus serial (`MGETDATA`) `[CONFIRMED via docs]` |
 | `error.nc` = system-fault/alarm hook (NOT a syntax-error hook) | program errors don't fire it `[CONFIRMED]`; HW-alarm untested (no switches) | ✅ runs "when system abnormal working" `[CONFIRMED via docs]` |
 | `#3000` alarm command (`#3000=1(MSG,…)`) | ❌ `[CONFIRMED]` unsupported → "macro variable assignment error" | ✅ `[CONFIRMED via docs]` |
 | Boot-time auto-run hook | none confirmed; no `sysstart`; `advstart.nc` = Advanced-Start feature `[TO TEST]` | `sysstart.nc` boot-init `[CONFIRMED via docs]` |
