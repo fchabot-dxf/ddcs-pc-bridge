@@ -178,6 +178,26 @@ format: l<N>" only on-screen); checkpoint granularity is the current substitute 
   keystrokes to press Start/navigate from the PC with no running program. Needs the M3K protocol
   (baud + key→byte map) recovered from `assets/system-backup/current/ddcsv4.out`. `[TO TEST]`
 
+## Firmware internals (static analysis, 2026-06-06)
+- **Board:** Nuvoton **W55FA93** (ARM926EJ-S, **ARMv5**); both binaries are **ELF 32-bit ARM LE, EABI5**.
+  → Ghidra language `ARM:LE:32`. `motiondev.ko` is **not stripped**; `ddcsv4.out` is **stripped**.
+- **`ddcsv4.out`** (the app) opens only `/dev/fb0`, `/dev/input/event{1,2,4,5,6}`, `/dev/input/mouse1`,
+  `/dev/motion`. **No tty/UART/termios** → it reads *decoded key events* from the Linux input subsystem;
+  it does NOT speak the M3K serial protocol.
+- **`motiondev.ko`** creates `/dev/motion` (app↔driver via `ioctl`) and drives the **front-panel keys +
+  LED/nixie display via a TM1638 chip** (`TM1638_Read/Write`, `Read_Nixie_DATA`, `LED_DIO/SCK/SS`,
+  `BEEP`) + GPIO + threaded IRQ + a `keybuff` ring buffer. **No UART / no M3K serial** — this is the
+  *front panel*, not the external keypad.
+- ⇒ **The M3K serial→keystroke driver is in the kernel** (bridging the UART to `/dev/input/eventX`),
+  which is **NOT in the firmware update package** (app layer only) nor on the SMB shares. The M3K
+  protocol **can't be recovered from any file we have.**
+- **To pursue serial** you need the **full firmware (kernel + rootfs)** — a NAND/flash dump or a
+  vendor/community full image — since there's **no shell** on the box to pull it (port scan = SMB only),
+  or sniff a **real M3K** pendant. Software key-injection (`/dev/motion` ioctl, `/dev/input/eventX`)
+  also needs shell access we don't have.
+- ⇒ For a trigger without the kernel/M3K, the **External Start input** (hardware contact closure) is the
+  practical path. `[CONFIRMED analysis]`
+
 ## Assets in this folder
 - `assets/firmware/` — V4.1 firmware backup (incl. `ddcsv4.out`, factory `.nc`/`.rc` macros).
 - `assets/system-backup/current/` — full live system snapshot (79 files, pristine `error.nc`).
