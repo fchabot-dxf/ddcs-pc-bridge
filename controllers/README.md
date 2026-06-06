@@ -4,7 +4,11 @@ This project targets **two physically different DDCS controllers**. This folder 
 findings and assets separate so a fact proven on one is never silently assumed on the other.
 
 ## Disambiguation rule (for agents and humans)
-1. Identify which controller a task is about *before* acting (bench V4.1, or studio Expert M350).
+0. **Confirm which physical device you're connected to** — run
+   [`identify-controller.ps1`](identify-controller.ps1) (reads the firmware, prints `V4.1` or
+   `EXPERT-M350`). Trust the verdict, not the IP. Two locations, two controllers — see
+   [`ENVIRONMENTS.md`](ENVIRONMENTS.md).
+1. Identify which controller a task is about *before* acting (bench V4.1 @ home, or studio Expert M350).
 2. Use that controller's `FINDINGS.md` as the source of truth.
 3. If a needed fact only exists for the *other* controller, treat it as `[HYPOTHESIS]` until
    re-confirmed on the one you're working with — **especially serial/Modbus and network direction.**
