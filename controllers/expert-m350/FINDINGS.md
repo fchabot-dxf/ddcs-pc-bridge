@@ -30,6 +30,24 @@ bench-proven. **Do not assume V4.1 findings carry over** — see [`../README.md`
 - Port-2 baud: params **`#266`/`#267`** (B2400/B4800/B9600/B19200/B115200). Confirm which is port 2. `[VERIFY]`
 - **Reboot** after serial/network param changes. `[CONFIRMED via docs]`
 
+## Firmware internals (Expert NAND backup `nand1-1`, static analysis 2026-06-06)
+From the `ddcs-expert` skill's `firmware-backup-2025-12-31/.../nand1-1/`. Expert SoC ≠ V4.1
+(W55FA93/ARMv5): the Expert uses **i.MX-class UARTs** — `/dev/ttymxc1`, `/dev/ttymxc2` — plus
+`/dev/ttySP0`, `/dev/ttySP1`. (Ghidra: ARM LE; confirm core from the ELF header — likely ARMv7.)
+- **`parse.out`** (~2.9 MB, the Expert app/parser) — **handles Modbus serial in *userspace*** (unlike
+  V4.1, whose app has no serial). Opens `ttymxc1`/`ttymxc2`, sets baud via `cfsetispeed`/`cfsetospeed`;
+  strings: `OpenSERIAL01/02`, `SetupSerial`, `Enter Uart0/Uart1 modbus communication`,
+  `Uart0/Uart1 modbus parameter address err`. ⇒ the documented `MSETDATA`/`MGETDATA` channel is here and
+  **decompilable in Ghidra** to pin the exact **port↔Uart mapping, baud, and frame format**. `[lead]`
+- **`pidMonitor.out`** (~0.6 MB) — process/watchdog monitor; not serial-relevant.
+- **M3K keypad: NOT in userspace** — `parse.out` reads `/dev/input/event*` (no `M3K`/keypad strings),
+  same as V4.1's `ddcsv4.out`. ⇒ the M3K serial→keystroke driver is **kernel-level on the Expert too**;
+  its protocol is **not recoverable** from these binaries (would need the kernel/rootfs partition or a
+  real M3K to sniff).
+- ⇒ **Trigger reality:** M3K-serial is a dead end on both controllers (kernel-level). **Expert autonomy
+  = `sysstart` (boot) + Modbus (`parse.out`, real & decompilable) + `#2037`.** V4.1 = **External Start
+  input** (hardware).
+
 ## Network (differs from V4.1)
 - Expert supports **manual IP only**. Defaults: controller `192.168.0.99`, host `192.168.0.100`.
 - `#284 "Network Boot Mode" → manu-IP`, then System Info (F6) → "Set IP Addr" (F4). Reboot. `[CONFIRMED via docs]`
