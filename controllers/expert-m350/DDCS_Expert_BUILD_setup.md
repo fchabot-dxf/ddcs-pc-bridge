@@ -2,7 +2,7 @@
 
 **Use THIS at the studio (Expert), not the V4.1 guide.** The Expert differs from the V4.1 in important
 ways — don't copy V4.1 steps blindly. Sources: official DDCS-Expert Manual V1 (Part1/Part2) +
-`reference/Modbus_RS232_DDCSE/` (Russian community Modbus docs). Items marked **[VERIFY ON MACHINE]**
+`assets/Modbus_RS232_DDCSE/` (Russian community Modbus docs). Items marked **[VERIFY ON MACHINE]**
 because param numbers shift between firmware versions.
 
 ---
@@ -45,7 +45,7 @@ Russian M350 docs:
 3. **Reboot** the controller (serial/network params apply only after restart).
 
 **Setup on the PC:** run a **Modbus RTU SLAVE** (the controller is master and polls/writes the PC).
-Use the bundled **Termite** (`reference/Modbus_RS232_DDCSE/Termite_1.0.0.6/`, has a Modbus scanner) or
+Use the bundled **Termite** (`assets/Modbus_RS232_DDCSE/Termite_1.0.0.6/`, has a Modbus scanner) or
 a `pymodbus` slave script. The controller's `MSETDATA` pushes status vars (#200+, incl. error code)
 into the PC slave's registers → that's your readback. `MGETDATA` lets the controller pull commands
 from the PC.
@@ -98,4 +98,4 @@ On the Expert the **PC hosts the share** and the controller reads it as "Net Dis
   machine (search by name), since they differ from both the V4.1 and the doc versions.
 - Both disk directions exist (V4.1 shows **Local disk + Net Disk**); the Expert very likely matches.
   Test the V4.1 SMB read recipe against the Expert's IP to confirm direct `uservar`/`error.nc` reads.
-- Full Modbus macro reference + register tables: `reference/Modbus_RS232_DDCSE/M350 modbus manual RU.docx`.
+- Full Modbus macro reference + register tables: `assets/Modbus_RS232_DDCSE/M350 modbus manual RU.docx`.

@@ -13,10 +13,10 @@ _Last updated: 2026-06-06_
 **CONFIRMED facts:**
 - `uservar` (3200 B, SYSDISK) = 400 little-endian f64; **slot = (#var − 100)**, covers #100–#499. High vars (#1505) NOT stored here. Slots 390–392 = live coords #490–492.
 - `setting` = 1500 f64, positional by param #; IPs stored as raw octet bytes at #327–330.
-- **Serial = Modbus, M350-ONLY** (V4.1 firmware has zero Modbus — checked 2 builds). M350: enable `#279` Modbus RTU, baud `#267`, data on **port 2** (port 1 = M3K keyboard), MAX3232 ±6V true RS-232 → SABRENT cable is correct. `MSETDATA`/`MGETDATA` r/w slave registers using vars #50–#499. Docs: `reference/Modbus_RS232_DDCSE/`.
+- **Serial = Modbus, M350-ONLY** (V4.1 firmware has zero Modbus — checked 2 builds). M350: enable `#279` Modbus RTU, baud `#267`, data on **port 2** (port 1 = M3K keyboard), MAX3232 ±6V true RS-232 → SABRENT cable is correct. `MSETDATA`/`MGETDATA` r/w slave registers using vars #50–#499. Docs: `controllers/expert-m350/assets/Modbus_RS232_DDCSE/`.
 
 **ACTIVE TEST B — error readback (ARMED, not yet confirmed):**
-- Controller `error.nc` currently = `#200 = 8888` (original empty version: `reference/error.nc.bak`).
+- Controller `error.nc` currently = `#200 = 8888` (original empty version: `controllers/v4.1/assets/error.nc.bak`).
 - Baseline: `uservar` slot 100 (=#200) currently = 22222 (from MAP_PROBE).
 - **To confirm:** trigger ANY fault → controller runs error.nc → #200=8888 → re-read `\\10.0.0.50\sysdisk\uservar` slot 100; if it reads 8888, error-readback works end-to-end.
 
@@ -24,7 +24,7 @@ _Last updated: 2026-06-06_
 1. Trigger a fault, confirm Test B (slot 100 → 8888).
 2. Find the system var holding the live **alarm code** so error.nc records *which* error (write it into a #100–#499 var).
 3. Build PC-side poller that watches the uservar slot over SMB — first real app (per `fred-app-architecture`, likely a small app under `C:\Users\danse\APPS`).
-4. Restore pristine `error.nc` from `reference/error.nc.bak` when done testing.
+4. Restore pristine `error.nc` from `controllers/v4.1/assets/error.nc.bak` when done testing.
 
 **TRIGGER / EXECUTION (open question — Fred):** Ethernet can read/write files but **can't press Start**; `#2037` virtual buttons only fire while a program already runs. Trigger options from cold idle: (a) `sysstart.nc` auto-runs at boot → launch a persistent dispatcher loop that reads Ethernet command files + fires `#2037` (zero serial — preferred if loop sustains); (b) **RS232 port 1 = M3K keyboard input**, read even at idle → emulating M3K keystrokes can press Start/navigate as hardware input with NO running program (the one thing Ethernet can't do; should work on V4.1 too since it's the keyboard port, not Modbus). Cost of (b): M3K serial protocol is undocumented → reverse-engineer from firmware or sniff a real M3K (skill experiment B1).
 
@@ -32,12 +32,12 @@ _Last updated: 2026-06-06_
 Plan: **Ethernet = data** (push G-code, read status/uservar); **serial port 1 (M3K keyboard) = trigger**
 (emulate pendant → press Start/select/navigate from outside, no running program, no dispatcher needed —
 cleanest control path on V4.1). TODO: (1) recover M3K protocol = baud + key→byte map, either by analyzing
-`reference/ddcs v4.1/current/ddcsv4.out` (skill exp B1) or sniffing a real M3K with scope/Termite;
+`controllers/v4.1/assets/system-backup/current/ddcsv4.out` (skill exp B1) or sniffing a real M3K with scope/Termite;
 (2) wire **PC TX → controller RXD1** (port 1) for sending; (3) verify port-1 voltage level (likely
 MAX3232 ±6V true RS-232 like port 2 → SABRENT OK; if 5V TTL, need a TTL adapter). First Claude Code task:
 grep/analyze ddcsv4.out for the keyboard serial handler + key-code table.
 
-**BACKUPS:** full system snapshot in `reference/ddcs v4.1/current/` (79 files, pristine error.nc). Leftover test files on CNCDISK: `PC_PUSH_TEST.nc`, `MAP_PROBE.nc` (harmless; delete anytime).
+**BACKUPS:** full system snapshot in `controllers/v4.1/assets/system-backup/current/` (79 files, pristine error.nc). Leftover test files on CNCDISK: `PC_PUSH_TEST.nc`, `MAP_PROBE.nc` (harmless; delete anytime).
 
 ---
 
@@ -104,7 +104,7 @@ Then run a serial monitor on **COM4**, sweep common baud rates (9600 → 115200 
 - This is the intended, confirmed-feasible path to "see errors on the PC."
 
 ## ⚠️ MAJOR UPDATE (2026-06-06) — serial is NOT dead; it's Modbus, transmit-on-command
-Fred supplied `reference/Modbus_RS232_DDCSE.rar` + `reference/RS232-DDCSE осциллограмma.pdf`
+Fred supplied `controllers/expert-m350/assets/Modbus_RS232_DDCSE.rar` + `controllers/expert-m350/assets/RS232-DDCSE осциллограмma.pdf`
 (scope capture). Decoded findings:
 - The DDCS **Expert** RS232 port is a **Modbus** interface at **true RS-232 levels (±8V** confirmed on
   the scope: +8V=logic0, −8V=logic1) → the SABRENT true-RS232 cable is the CORRECT adapter.
@@ -113,7 +113,7 @@ Fred supplied `reference/Modbus_RS232_DDCSE.rar` + `reference/RS232-DDCSE осц
 - **The "receive-only" conclusion below was WRONG.** The port doesn't stream on idle — it transmits
   only when a macro like MSETDATA runs. Our V4.1 listen test caught silence because no transmit macro
   was running, not because the port can't transmit.
-  RAR extracted to `reference/Modbus_RS232_DDCSE/` — `M350 modbus manual RU.docx`, `Инструкция.txt`,
+  RAR extracted to `controllers/expert-m350/assets/Modbus_RS232_DDCSE/` — `M350 modbus manual RU.docx`, `Инструкция.txt`,
   `Распиновка разъёма.pdf` (connector pinout), Termite terminal + Modbus PDFs.
 
 ### CONFIRMED M350 Modbus recipe (M350 manual + Инструкция.txt)
@@ -164,7 +164,7 @@ dispatcher hack. Goal of this plan: prove the PC can drive the V4.1 panel by sen
 Safe to test on the bench V4.1 (no motors). Confidence tags: [TO TEST] until a RESULT line is filled.
 
 ### T1 — Recover the M3K serial protocol (baud + key→byte map) [TO TEST]
-**Method A (no hardware):** analyze the firmware binary `reference/ddcs v4.1/current/ddcsv4.out` for the
+**Method A (no hardware):** analyze the firmware binary `controllers/v4.1/assets/system-backup/current/ddcsv4.out` for the
 keyboard/serial handler and the key-label table (CONT/STEP/ZERO/HOME/PROBE/MIDDLE/AUTO/MDI/Start/…);
 cross-ref the port-1 (M3K) UART init for baud + framing. (= skill experiment B1.)
 **Method B (hardware):** sniff a real M3K pendant with the scope/Termite; decode frames per keypress.
