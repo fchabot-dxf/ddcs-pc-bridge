@@ -34,4 +34,4 @@ findings and assets separate so a fact proven on one is never silently assumed o
 Legend: ✅ confirmed · ❌ confirmed-absent · `[TO TEST]` open · `[HYPOTHESIS]` unverified.
 
 See [`v4.1/FINDINGS.md`](v4.1/FINDINGS.md) and [`expert-m350/FINDINGS.md`](expert-m350/FINDINGS.md)
-for detail and provenance.
+for detail and provenance. Active V4.1 test backlog: [`v4.1/ETHERNET_TESTS.md`](v4.1/ETHERNET_TESTS.md).
