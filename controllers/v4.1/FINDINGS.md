@@ -94,6 +94,25 @@ format: l<N>" only on-screen); checkpoint granularity is the current substitute 
 - Note: `G4 P<ms>` dwell **works** (visually confirmed ~45 s). An earlier "finished in ~2 s" reading
   was a misread — it was the **stale RAM value flushed to the file at run start**, not completion.
 
+## Triggering & remote job-swap — the autonomy path `[CONFIRMED]` ⭐
+- **File-reload works:** overwrite the *already-selected* job file over SMB, then press **Start again
+  without re-selecting** → the controller **re-reads the file from disk and runs the NEW contents.**
+  Proven: version A set `#230=1001`; PC overwrote the file to version B (`#230=2002`); a second Start
+  (no re-select) → slot 130 = **2002**. (Unlike `uservar`, the *program file* IS re-read on Start.)
+  Also survives a full **delete + re-transfer** (same name): version C (`#230=3003`) ran on the next
+  Start → the selected file is resolved by **path/name at Start**, not a cached handle, so *any* push
+  method (overwrite-in-place **or** delete-and-recreate) works.
+- ⇒ **The trigger reduces to a dumb "Start" pulse** — no navigation, no file-select, no serial protocol.
+- **Autonomy loop (V4.1):**
+  1. one-time: select the master job file on the panel once;
+  2. PC overwrites that file over Ethernet (SMB) ✅;
+  3. pulse the **External Start input** (NPN active-low — a ~$6 relay/optocoupler/ESP32; no protocol,
+     no voltage gamble) ← the only hardware needed;
+  4. controller re-reads + runs the new job; PC polls the **uservar sentinel** for clean/errored ✅.
+- **Serial M3K is NOT required for triggering** — its only edge (panel navigation) is unnecessary once
+  file-reload + a Start pulse cover job-swap. Serial → fallback/nice-to-have, not the path. `[TO TEST]`:
+  confirm the External Start input fires a run on the bench (IO-page mapping + a contact closure).
+
 ## Homing & the Expert `sysstart` equivalent
 - The Expert's `sysstart.nc` runs **`M115`** ("execute standard startup homing") + gantry sync
   (`#883=#881`, `#1518=1`). **`M115` does NOT exist on the V4.1** `[CONFIRMED via V4.1 G/M-code manual]`.

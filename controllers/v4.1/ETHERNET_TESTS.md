@@ -45,8 +45,10 @@ Status: ✅ done · 🔄 staged/in-progress · ⬜ to do. Detail/provenance live
       `key-1..7.nc`, `ext_button.nc` (M#1996), `extnc0/1/2.nc`, `error.nc`. Map hook → fires-on → can-signal.
 
 ## ⬜ To do — automation linchpins
-- [ ] **File-reload / remote job-swap** — overwrite a selected job over SMB, press Start again *without
-      re-selecting* → does it run the NEW contents (re-reads disk) or cache the old?
+- [x] **File-reload / remote job-swap** — ✅ **WORKS.** Overwrite (or delete+re-transfer, same name)
+      the selected job over SMB, press Start without re-selecting → controller re-reads disk and runs
+      the NEW code (A→B→C: 1001→2002→3003). Trigger reduces to a dumb **Start pulse** (External Start
+      input, ~$6) — serial navigation NOT needed.
 - [ ] **Event file-diff** — snapshot sysdisk before/after various events to find any other status files
       the controller writes (beyond uservar / `.file` / `.env`).
 

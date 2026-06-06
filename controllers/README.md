@@ -24,6 +24,8 @@ findings and assets separate so a fact proven on one is never silently assumed o
 | `uservar` store (400×f64, slot = `#var−100`, #100–#499) | ✅ `[CONFIRMED]` | likely same `[TO TEST]` |
 | `uservar` as PC→program *inbound* channel | ❌ `[CONFIRMED]` program reads RAM; file writes ignored (readback-only) | `[TO TEST]` |
 | Live inbound command channel to a running program | none over SMB → needs **serial/hardware** `[CONFIRMED]` | Modbus serial (`MGETDATA`) `[CONFIRMED via docs]` |
+| Remote job-swap: overwrite/delete+resend selected file, Start re-runs NEW code | ✅ `[CONFIRMED]` file re-read on Start (resolved by path) | `[TO TEST]` |
+| Trigger a run (after a one-time manual file select) | dumb **Start pulse** → External Start input (~$6, NPN active-low) `[reload CONFIRMED; input TO TEST]` | `sysstart` boot hook = zero-hardware `[CONFIRMED via docs]` |
 | `error.nc` = system-fault/alarm hook (NOT a syntax-error hook) | program errors don't fire it `[CONFIRMED]`; HW-alarm untested (no switches) | ✅ runs "when system abnormal working" `[CONFIRMED via docs]` |
 | `#3000` alarm command (`#3000=1(MSG,…)`) | ❌ `[CONFIRMED]` unsupported → "macro variable assignment error" | ✅ `[CONFIRMED via docs]` |
 | Boot-time auto-run hook | none confirmed; no `sysstart`; `advstart.nc` = Advanced-Start feature `[TO TEST]` | `sysstart.nc` boot-init `[CONFIRMED via docs]` |
