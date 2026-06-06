@@ -48,6 +48,25 @@ From the `ddcs-expert` skill's `firmware-backup-2025-12-31/.../nand1-1/`. Expert
   = `sysstart` (boot) + Modbus (`parse.out`, real & decompilable) + `#2037`.** V4.1 = **External Start
   input** (hardware).
 
+## RS232 connector pinout + wiring `[CONFIRMED via manual]`
+DB-9 **female** on the controller (manual §4.7, `assets/Modbus_RS232_DDCSE/Распиновка разъёма.pdf`):
+
+| Pin | Signal | Pin | Signal |
+|---|---|---|---|
+| 1 | 5V | 6 | 5V |
+| 2 | **RXD1** | 7 | **RXD2** |
+| 3 | **TXD1** | 8 | **TXD2** |
+| 4 | (not connected) | 9 | GND |
+| 5 | GND | | |
+
+- **Modbus (PC↔Expert) = port 2, 3 wires (bidirectional):** SABRENT **TX(3)→RXD2(pin 7)**,
+  **RX(2)←TXD2(pin 8)**, **GND(5)↔GND(pin 9 or 5)**. MAX3232 ±6 V → SABRENT correct.
+- **M3K keypad = port 1** (RXD1 pin 2 / TXD1 pin 3), enabled by **`#268 = M3K`** at **115200**
+  (`#266`/`#267`). ⇒ **the M3K runs at 115200** — first hard number on the keypad (protocol still
+  kernel-level, but baud is known now). `[CONFIRMED via manual]`
+- Note: this pinout (RXD1=2, TXD1=3, RXD2=7, TXD2=8) is the authoritative one; the V4.1 send-tests
+  used RXD1=3 (which is actually TXD1) — invalid pin — though V4.1's M3K is kernel-level anyway.
+
 ## Network (differs from V4.1)
 - Expert supports **manual IP only**. Defaults: controller `192.168.0.99`, host `192.168.0.100`.
 - `#284 "Network Boot Mode" → manu-IP`, then System Info (F6) → "Set IP Addr" (F4). Reboot. `[CONFIRMED via docs]`
