@@ -35,27 +35,29 @@
   CNCDISK; `error.nc` currently = `#200 = 8888`, pristine empty backup in `assets/error.nc.bak`).
 
 ### Detecting syntax errors over Ethernet — RESULTS (tested 2026-06-06)
-1. **Completion sentinel** `[CONFIRMED]` — write a start-marker near the top and a completion-sentinel
-   as the *last* line. A syntax error halts execution partway, so the sentinel never gets written.
-   PC reads uservar: start-marker set **+** sentinel absent = "started but didn't finish" = **error
-   caught**. Proven with `SENTINEL_ERR.nc` (ZZZZ on line 5): slot 101 = 7779 (started), slot 103 = 0
-   (sentinel never reached), `.env` idx 148 = 0 (didn't complete). Reliable. Add intermediate
-   checkpoint vars to localize roughly *where* it died.
+1. **Completion sentinel + checkpoints** `[CONFIRMED both directions]` — write a start-marker near the
+   top, numbered checkpoint vars between sections, and a completion-sentinel as the *last* line. PC
+   reads uservar:
+   - **Error run** (`SENTINEL_ERR.nc`, ZZZZ on line 5): slot 101 = 7779 (started), slot 103 = **0**
+     (sentinel never reached) → **error caught**.
+   - **Clean run** (`CLEAN_RUN.nc`): slot 101 = 7780, checkpoints 110 = 1111 & 111 = 2222 (in order),
+     slot 103 = **9999** (sentinel reached) → **clean finish**.
+   So `slot103 == 9999` ⇒ completed; anything else ⇒ died, and the highest checkpoint set tells you
+   roughly **where**. This is the reliable software error-detector. `.file` (below) tells you *which*
+   program the reading belongs to.
 2. **Controller run-state files (SYSDISK), written on every run:**
-   - `.file` (332 B, text) = path of the last-loaded file (e.g. `/local/SENTINEL_ERR.nc`). `[CONFIRMED]`
-   - `.<name>.nc.env` (888 B) = modal/run state, int32 LE. Confirmed fields: idx 21 = file size,
-     idx 23 = run timestamp (Unix), **idx 148 = completion flag — 0 = aborted/errored, 1 = finished
-     clean** (0 on both error runs, 1 on a clean run; `[HYPOTHESIS, n=1 clean]`). This is a
-     controller-native "did it finish" signal needing **no** sentinel injection.
-   - **idx 149 is NOT the error line** `[REFUTED]` — it read **4 for an error on line 4 (FAULT_TESTB)
-     and also 4 for an error on line 5 (SENTINEL_ERR)**, so the first sample's "matches l4" was
-     coincidence. What idx 149 actually encodes is unknown `[TO TEST]`.
+   - `.file` (332 B, text) = path of the last-loaded file (e.g. `/local/CLEAN_RUN.nc`). `[CONFIRMED]` — useful.
+   - `.<name>.nc.env` (888 B) = modal/run state, int32 LE. Confirmed: idx 21 = file size, idx 23 =
+     run timestamp. **Do NOT use `.env` for status:** idx 148 and idx 149 reflect *program structure*,
+     not completion — a **clean** `CLEAN_RUN` and a **failed** `SENTINEL_ERR` both gave idx 148 = 0,
+     idx 149 = 4. Both earlier hypotheses (idx 149 = error line; idx 148 = completion flag) are
+     `[REFUTED]`. The original diff vs `MAP_PROBE` just reflected a different program.
    - `.<name>.nc.pos` (60 B) = axis positions. Not needed for error detection.
 
-**Bottom line:** syntax errors **are** detectable over Ethernet — use the **completion sentinel**
-(reliable) backed by the **`.env` idx 148 completion flag** and **`.file`** (which program ran).
-The exact error *line* is not yet available in software (idx 149 refuted; on-screen the controller
-*does* show "unrecognized file format: l<N>", so the info exists — just not located in a file yet).
+**Bottom line:** syntax errors **are** reliably detectable over Ethernet via the **uservar completion
+sentinel + checkpoints** (proven clean *and* error cases), with **`.file`** identifying the program.
+The exact error *line* is not available in any file yet (the controller shows "unrecognized file
+format: l<N>" only on-screen); checkpoint granularity is the current substitute for localization.
 
 ## Serial
 - **No Modbus in V4.1 firmware** — checked the newest build (`ddcsv4(2025-04-04)`): 0 hits for
@@ -76,9 +78,8 @@ The exact error *line* is not yet available in software (idx 149 refuted; on-scr
 - `assets/setting` — controller param file. `assets/ddcs4.1.JPG` — photo of the port/pinout.
 
 ## Open actions
-- [x] ~~Run `SENTINEL_ERR.nc`~~ → **completion sentinel CONFIRMED** (2026-06-06); idx 149 ≠ error line.
-- [ ] Confirm `.env` idx 148 = 1 on a **clean** run (n=1 so far) → lock it as the completion flag.
-- [ ] Figure out what `.env` idx 149 actually encodes (read 4 for both line-4 and line-5 errors).
+- [x] ~~Run `SENTINEL_ERR.nc` + `CLEAN_RUN.nc`~~ → **sentinel + checkpoints CONFIRMED both directions** (2026-06-06).
+- [x] ~~`.env` idx 148/149 as status~~ → **REFUTED**: reflect program structure, not completion. Use uservar.
 - [ ] Run `FAULT_TESTB2.nc` (`#3000` alarm) → does `error.nc` fire on a real alarm? (slot 100 → 8888)
 - [ ] Find the system var holding the live **alarm code** (so a hook can log *which* error).
 - [ ] Recover M3K serial protocol from `ddcsv4.out` (skill experiment B1).
