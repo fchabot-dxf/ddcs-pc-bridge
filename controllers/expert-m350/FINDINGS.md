@@ -111,6 +111,32 @@ client + `EnableInsecureGuestLogons $true` + `BlockNTLM $false` (admin + reboot)
 - Run-state hidden files exist on SYSDISK: per-program **`.<name>.nc.pos`** (60 B each) and **`.break0/.break1`**
   (breakpoint-resume) — same family as the V4.1 run-state files. `[TO TEST what they track]`
 
+## ⚠️ Dispatcher: Expert `M47` ≠ V4.1 `M47` — the V4.1 loop trick does NOT port `[CONFIRMED 2026-06-06]`
+The V4.1 software dispatcher relies on `M47` = **"restart program from top"** (firmware built-in) so an
+`M47` self-loop re-reads the file each cycle. **On the Expert, `M47` is a different macro entirely** —
+defined in the `slib-m.nc` M-code library as `O10047`, a **count-and-conditionally-pause** routine:
+```
+O10047  #701=#701+1  #702=#702+1  #1506=47
+        IF #702==#703 GOTO1  / GOTO2
+   N1   #702=0  #1505=1(msg)  #1620=1(pause/feed-hold)  G04 P500
+   N2
+```
+⇒ **Need a different loop primitive on the Expert** for a PC-fed dispatcher — candidates: `M99` in the
+main program (loops to top, re-reading the file?) or `M98` self-recursion. **`[TO TEST]` which construct
+re-reads the file from disk each cycle here** (the property the dispatcher actually depends on). Do this
+test on the V4.1 first if possible; on the Expert it needs motion → E-stop.
+
+## Macro / param internals over SMB `[CONFIRMED 2026-06-06]`
+- **`setting` file = 1000×f64, index = param #** (8000 B). Decodes over SMB and matches the panel:
+  baud code **4 = B115200**; `#284` Net-boot **0=Close / 1=auto / 2=manu**; `#296`=0 (parity None),
+  `#297`=0 (1 stop bit) → 8N1. WCS offsets live here too (`#805+[WCS−1]*5`). ⇒ PC can read **all persisted
+  config + WCS**, not just `uservar`. (`#325`=garbage here — param numbering is controller-specific.)
+- **`slib-m.nc` = M-code library:** each M-code → subprogram **`O(10000+code)`** (M0=O10000 … M30=O10030,
+  M47=O10047, M50-M62=O10050-62). User-overridable. `M30` (O10030): `M5 M9 M11` + conditional return to
+  `Z#569`/`X0Y0` per `#730`. **`slibuser.nc`**: user G-code `G199` = `G90 G01 X#6Y#7Z#8 F#15`.
+- `parse.out` (live, 2.99 MB) references `sysstart.nc` + `M30` as strings (boot hook real). `MSETDATA`/
+  `MGETDATA` are NOT plain-ASCII in it (wide-char/tokenized?) — revisit when wiring Modbus.
+
 ## System / macro variables (read off the operator's live macros 2026-06-06) `[CONFIRMED on machine]`
 From `READ_VAR.nc`, `COPY_WCS.nc`, `SAVE_WCS_XY_AUTO.nc`, `sysstart.nc` on this machine:
 - `#578` = **active WCS number** (1=G54 … 6=G59).
@@ -120,6 +146,9 @@ From `READ_VAR.nc`, `COPY_WCS.nc`, `SAVE_WCS_XY_AUTO.nc`, `sysstart.nc` on this 
 - **On-screen message:** `#1505 = -5000(text with %f)`, args in `#1510` / `#1511`.
 - **Numeric input prompt:** `#2070 = <var>(prompt text)` — pauses for operator entry into that var.
 - Indirect addressing works: `#[#100]` reads the var whose number is in `#100` (used for the var-reader).
+- More vars from `slib-m.nc`: `#1506` = current M-code indicator, `#1620` = **feed-hold/pause flag**,
+  `#701/#702/#703` = counter / counter / limit (M47 count macro), `#730` = end-of-program return mode
+  (0/1/2), `#569` = safe-Z return height, `#624` = G53 Z return. `IF/GOTO/Nlabel` + `G04 P<ms>` dwell.
 
 ## Control
 - `#2037` **virtual buttons** press any of 201 panel functions from a running macro
