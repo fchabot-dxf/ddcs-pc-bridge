@@ -25,6 +25,20 @@ or fire `#2037` buttons. Because it never relinquishes the executor, it needs ex
 power cycle. If self-sustaining → **zero extra hardware**. If not → one physical Start trigger
 (manual button or a ~$6 ESP32) is the entire residual hardware need. `[TO TEST on each controller]`
 
+## ✅ Proven minimal autonomy (V4.1) + accepted requirement
+**Operator decision:** **one manual button (Start) per power-cycle is acceptable** to bootstrap — full
+zero-touch auto-start is *not* required (it's a nice-to-have the Expert's `sysstart` provides for free).
+
+So the dispatcher is **proven and complete with no new hardware**:
+1. operator presses **Start once** → launches an **`M47` self-loop** (the program file is re-read from
+   disk every cycle — `[CONFIRMED on V4.1]`);
+2. PC **injects each job by overwriting the loop file over SMB** (next cycle runs it);
+3. PC reads pass/fail via the **`uservar` sentinel** (controller→file→PC).
+
+⇒ **No serial, no relay/optocoupler, no auto-boot hack, no `#2037`** for the V4.1. To harden: atomic
+file writes (temp+rename) against torn reads, plus a run-once command protocol. Detail:
+[`../v4.1/FINDINGS.md`](../v4.1/FINDINGS.md).
+
 ## Error-readback principle
 An error is **discrete and rare**, so flash-writing a flag is safe (unlike live position, which is
 continuous/high-rate and not expected in any flash file). Mechanisms differ per controller — see the

@@ -124,14 +124,20 @@ format: l<N>" only on-screen); checkpoint granularity is the current substitute 
   2. PC **injects each job/command by overwriting the loop file over SMB** — the next cycle runs it;
   3. readback via the `uservar` sentinel (controller→file→PC).
   → **No per-job hardware trigger and no serial needed** — only the one-time bootstrap Start.
+- **Prototype:** [`dispatcher/`](dispatcher/) — `ddcs-dispatch.ps1` (atomic-write orchestrator) +
+  run-once command protocol (cmd-id `#240` vs RAM gate `#241`; started/done sentinels `#243`/`#244`;
+  heartbeat `#246`). See [`dispatcher/README.md`](dispatcher/README.md).
 - **Caveats / next:**
-  - The loop spins fast (no reliable `G4` pacing), and the PC overwrites a file the controller is
-    actively re-reading → **use atomic writes (write temp + rename)** to avoid the controller reading a
-    torn/half-written file (which would syntax-error and drop the loop). `[TO TEST]`
-  - Define a clean command protocol (e.g. the loop file = `M98`/inline job body + `M47`; or a
-    "command id" the PC bumps so the loop runs each job once). `[DESIGN]`
-  - **Safety:** a fast loop that executes whatever is in the file is powerful — on a real machine gate
-    it hard (independent E-stop + watchdog) before enabling motion.
+  - The loop spins fast (no reliable `G4` pacing) and the PC overwrites a file the controller is
+    actively re-reading → **atomic writes (temp + rename)** avoid torn reads. `[TO TEST]`
+  - **A bad job halts the whole loop** (syntax error, no `error.nc`, no try/catch) → it needs a Start
+    to relaunch. The PC *detects* this via the started-not-done sentinel, but recovery needs a
+    re-trigger. Fix: **(a) PC pre-lint jobs** to make halts rare; **(b) auto re-trigger** for the rare
+    halt — and serial earns its keep here, because the dispatcher reduces it to sending **one key
+    ("Start")**, success auto-detectable via the `#246` heartbeat over SMB. (External Start input is
+    the no-protocol alternative.)
+  - **Safety:** a fast loop that runs whatever is in the file is powerful — on a real machine gate it
+    hard (independent E-stop + watchdog) before enabling motion.
 
 ## Homing & the Expert `sysstart` equivalent
 - The Expert's `sysstart.nc` runs **`M115`** ("execute standard startup homing") + gantry sync

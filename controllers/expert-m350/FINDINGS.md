@@ -42,6 +42,21 @@ bench-proven. **Do not assume V4.1 findings carry over** — see [`../README.md`
   (`#2037 = 65536 + [KeyValue − 1000]`). `[CONFIRMED]` per the `ddcs-expert` skill
   (`Virtual_button_function_codes_COMPLETE.xlsx`). Subject to the one-program-at-a-time rule.
 
+## Autonomy outlook — the Expert is a superset of the V4.1
+The V4.1 bench proved a **software dispatcher**: an `M47` self-loop re-reads its file from disk each
+cycle, so the PC injects jobs by overwriting the loop file over SMB (one bootstrap Start needed). The
+Expert should do all that **and more** — likely **fully autonomous, zero added hardware**:
+- **Zero-touch bootstrap:** `sysstart.nc` auto-runs at boot → it can launch the `M47` dispatcher with
+  no manual/External Start at all. `[CONFIRMED via docs that sysstart auto-runs; dispatcher TO TEST]`
+- **Second inbound channel:** Modbus **`MGETDATA`** (controller pulls commands from a PC slave) — a
+  live bidirectional path independent of the file trick. `[CONFIRMED via docs]`
+- **Real fault readback:** `error.nc` fires "when system abnormal working." `[CONFIRMED via docs]`
+- **Panel control:** `#2037` virtual buttons. `[CONFIRMED]`
+
+**Plan:** develop + harden the dispatcher and PC orchestrator on the V4.1 (safe, working), then deploy
+to the Expert. **Verify on the actual machine `[TO TEST]`:** file-reload / `M47`-reread holds here;
+`sysstart` sustains the loop; SMB disk access vs Net-Disk-only; which system var holds the alarm code.
+
 ## Macro hooks — official install-file description `[CONFIRMED via docs]`
 From the DDCS-Expert "install file description". These auto-run / are invoked by the firmware:
 - **`sysstart.nc`** — *"Boot initialization file — can modify it."* Auto-runs at **boot**. This is the
