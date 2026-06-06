@@ -86,13 +86,13 @@ format: l<N>" only on-screen); checkpoint granularity is the current substitute 
   second value to the file *during* the dwell. The macro captured `#221 = 0` (at start) and
   `#222 = 0` (after the live write) — it read **RAM (0)** both times, never the file values. `#220`
   kept my file edit only because the macro never *wrote* `#220` (unwritten vars aren't flushed over).
-- ⇒ **PC writes to `uservar` are invisible to a running/starting program.** A polling "dispatcher"
-  therefore **cannot receive commands over SMB** — a running program is sealed from SMB file changes.
-- **Implication:** a *live* inbound PC→controller channel needs **hardware** — the serial **M3K
-  keyboard port** (read live by firmware, even mid-run) or the external Start/Pause inputs.
-  **This is the concrete, evidence-based reason serial matters on the V4.1.**
-- Note: `G4 P<ms>` dwell **works** (visually confirmed ~45 s). An earlier "finished in ~2 s" reading
-  was a misread — it was the **stale RAM value flushed to the file at run start**, not completion.
+- ⇒ **PC writes to `uservar` are invisible to a running program** — the *variable* channel is sealed.
+  **BUT the program *file* is NOT sealed** (see "Software dispatcher" below): an `M47` self-loop
+  **re-reads the file from disk every cycle**, so the PC *can* feed a running program by overwriting
+  its file over SMB. So a software dispatcher **is** possible over SMB after all (via the file, not
+  vars); only the **one-time bootstrap Start** needs a trigger. Serial → fallback, not required.
+- Note: `G4` dwell timing is **inconsistent** (a `P45000` looked like ~45 s once, but a `P3000` in a
+  loop spun thousands of cycles in seconds) — don't depend on `G4` for pacing. `[HYPOTHESIS]`
 
 ## Triggering & remote job-swap — the autonomy path `[CONFIRMED]` ⭐
 - **File-reload works:** overwrite the *already-selected* job file over SMB, then press **Start again
@@ -112,6 +112,26 @@ format: l<N>" only on-screen); checkpoint granularity is the current substitute 
 - **Serial M3K is NOT required for triggering** — its only edge (panel navigation) is unnecessary once
   file-reload + a Start pulse cover job-swap. Serial → fallback/nice-to-have, not the path. `[TO TEST]`:
   confirm the External Start input fires a run on the bench (IO-page mapping + a contact closure).
+
+## Software dispatcher via `M47` self-loop — inbound channel over SMB `[CONFIRMED]` ⭐⭐
+- **The program file is re-read from disk on every `M47` ("repeat from first line") cycle.** Test: an
+  `M47` loop ran v1 (`#232=1111`); the PC overwrote the file to v2 (`#232=2222`) *mid-loop*; after
+  stop, `#232 = 2222` over 3024 cycles. So unlike `uservar` (RAM-cached), the **program file is a live
+  inbound channel.**
+- ⇒ **A self-looping `M47` program is a software dispatcher.** Architecture:
+  1. **bootstrap once:** Start an `M47` loop file (manual press once / External-Start pulse / on the
+     Expert, `sysstart.nc` at boot = zero-touch);
+  2. PC **injects each job/command by overwriting the loop file over SMB** — the next cycle runs it;
+  3. readback via the `uservar` sentinel (controller→file→PC).
+  → **No per-job hardware trigger and no serial needed** — only the one-time bootstrap Start.
+- **Caveats / next:**
+  - The loop spins fast (no reliable `G4` pacing), and the PC overwrites a file the controller is
+    actively re-reading → **use atomic writes (write temp + rename)** to avoid the controller reading a
+    torn/half-written file (which would syntax-error and drop the loop). `[TO TEST]`
+  - Define a clean command protocol (e.g. the loop file = `M98`/inline job body + `M47`; or a
+    "command id" the PC bumps so the loop runs each job once). `[DESIGN]`
+  - **Safety:** a fast loop that executes whatever is in the file is powerful — on a real machine gate
+    it hard (independent E-stop + watchdog) before enabling motion.
 
 ## Homing & the Expert `sysstart` equivalent
 - The Expert's `sysstart.nc` runs **`M115`** ("execute standard startup homing") + gantry sync

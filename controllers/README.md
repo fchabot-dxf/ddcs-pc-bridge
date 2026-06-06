@@ -23,7 +23,8 @@ findings and assets separate so a fact proven on one is never silently assumed o
 | Default IP scheme | static `192.168.2.x` (we set `10.0.0.50`) | controller `192.168.0.99`, host `192.168.0.100`; manual-IP only |
 | `uservar` store (400×f64, slot = `#var−100`, #100–#499) | ✅ `[CONFIRMED]` | likely same `[TO TEST]` |
 | `uservar` as PC→program *inbound* channel | ❌ `[CONFIRMED]` program reads RAM; file writes ignored (readback-only) | `[TO TEST]` |
-| Live inbound command channel to a running program | none over SMB → needs **serial/hardware** `[CONFIRMED]` | Modbus serial (`MGETDATA`) `[CONFIRMED via docs]` |
+| Live inbound channel to a running program | ✅ via the **program file** — `M47` self-loop re-reads disk each cycle, PC overwrites it `[CONFIRMED]`; `uservar` vars do NOT | Modbus serial (`MGETDATA`) `[CONFIRMED via docs]` |
+| Software dispatcher (1 bootstrap Start, then SMB-fed jobs) | ✅ `[CONFIRMED]` `M47` loop + overwrite file; no per-job trigger | `sysstart` loop = zero-touch `[likely]` |
 | Remote job-swap: overwrite/delete+resend selected file, Start re-runs NEW code | ✅ `[CONFIRMED]` file re-read on Start (resolved by path) | `[TO TEST]` |
 | Trigger a run (after a one-time manual file select) | dumb **Start pulse** → External Start input (~$6, NPN active-low) `[reload CONFIRMED; input TO TEST]` | `sysstart` boot hook = zero-hardware `[CONFIRMED via docs]` |
 | `error.nc` = system-fault/alarm hook (NOT a syntax-error hook) | program errors don't fire it `[CONFIRMED]`; HW-alarm untested (no switches) | ✅ runs "when system abnormal working" `[CONFIRMED via docs]` |

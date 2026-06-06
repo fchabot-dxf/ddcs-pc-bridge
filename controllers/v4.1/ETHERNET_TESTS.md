@@ -28,8 +28,12 @@ Status: ✅ done · 🔄 staged/in-progress · ⬜ to do. Detail/provenance live
       harmless page switch.) Proves the software navigation/Start primitive.
 - [ ] **`advstart.nc` auto-run** — V4.1's likely boot/auto hook (firmware-listed; `sysstart` is NOT in
       V4.1 firmware). Put a marker var in `advstart.nc`, reboot, read it → does it auto-run at boot?
-- [ ] **`advstart.nc` dispatcher loop** — if it auto-runs, can it sustain a poll loop that reads a
-      PC-written command file and fires `#2037`? If yes → **zero-hardware control, serial unnecessary.**
+- [x] **Software dispatcher via `M47` self-loop** — ✅ **WORKS.** The program file is re-read from disk
+      every `M47` cycle, so the PC injects jobs by overwriting the loop file over SMB (proven: v1→v2
+      mid-loop, `#232` 1111→2222 over 3024 cycles). One bootstrap Start, then pure-SMB control — no
+      per-job trigger, no serial. Next: atomic writes (temp+rename) to avoid torn-file reads.
+- [ ] **`advstart.nc` dispatcher loop** — if it auto-runs at boot, it could bootstrap the `M47`
+      dispatcher with **zero hardware** (sets up the one Start automatically).
 - [ ] **MDI-over-network** — overwrite `mdiblock`/`mdi.nc` over SMB; can it execute without a panel
       press (on its own, after a refresh, or via a hook firing the MDI-run `#2037`)?
 
