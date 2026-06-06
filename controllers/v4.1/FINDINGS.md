@@ -37,11 +37,15 @@
   alarm** — the screen showed *"macro variable assignment error: L4"* (it tried to assign var #3000).
   Execution halted, slot 100 stayed 22222. So `error.nc` has now failed to fire on **every** software
   error type tested.
-- **Firmware confirms `error.nc` is not a hook on V4.1.** `[CONFIRMED from strings]` `error.nc` does
-  **not** appear in the firmware's macro-hook filename table (which lists `advstart.nc`, `loadbreak.nc`,
-  `simulate.nc`, `M3/M4/M5`, `pause.nc`, `probe-*`, `zero*`, `home_ref*`, `end.nc`…). The only
-  near-match is an unrelated token `Perror.nc` elsewhere in the binary (not present on disk). → on the
-  V4.1, **`error.nc` is just a file nothing auto-runs.**
+- **What `error.nc` is actually for** (official DDCS-Expert install-file description): *"when system
+  abnormal working, system will execute this file"* — i.e. a **system-fault / alarm hook, NOT a G-code
+  program-error hook.** That explains why it never fired here: a syntax error / `#3000` is a *program*
+  error, not a *system alarm*. **`error.nc` was never the right tool for catching syntax errors — on
+  either controller.**
+- **Does the V4.1 even implement `error.nc`?** Unclear. It does **not** appear in the V4.1 firmware's
+  macro-hook string table (only an unrelated `Perror.nc` token), which *hints* V4.1 may not run it —
+  but confirming needs a real **hardware alarm** (limit / E-stop / servo), which a motorless bench
+  can't produce. `[TO TEST w/ hardware]`
 - **`#3000` alarm command is Expert/M350-only** (came from the M350-focused `ddcs-expert` skill). `[CONFIRMED]`
 - **`sysstart.nc` is NOT in V4.1 firmware** — DESIGN's "sysstart auto-runs at boot `[CONFIRMED]`" was an
   *Expert* finding. The V4.1's firmware-listed startup/auto hook is likely **`advstart.nc`** ("advanced

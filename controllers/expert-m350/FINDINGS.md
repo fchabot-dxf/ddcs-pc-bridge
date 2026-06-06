@@ -42,6 +42,18 @@ bench-proven. **Do not assume V4.1 findings carry over** — see [`../README.md`
   (`#2037 = 65536 + [KeyValue − 1000]`). `[CONFIRMED]` per the `ddcs-expert` skill
   (`Virtual_button_function_codes_COMPLETE.xlsx`). Subject to the one-program-at-a-time rule.
 
+## Macro hooks — official install-file description `[CONFIRMED via docs]`
+From the DDCS-Expert "install file description". These auto-run / are invoked by the firmware:
+- **`sysstart.nc`** — *"Boot initialization file — can modify it."* Auto-runs at **boot**. This is the
+  Expert's hands-free entry point (the dispatcher-bootstrap candidate). **Absent on V4.1.**
+- **`error.nc`** — *"When system abnormal working, system will execute this file."* A **system-fault /
+  alarm** hook (NOT a G-code syntax-error hook — see V4.1 findings; program errors won't trigger it).
+- **`pause.nc`** (pause), **`key-1.nc`…`key-7.nc`** (K1–K7), **`ext_button.nc`** + **`extnc0/1/2-N.nc`**
+  (self-design buttons: release / short-press / long-press), **`probe.nc`**, **`fndX/Y/Z/A/B.nc`** +
+  **`fndzero.nc`** (go home), **`gotozero.nc`** (go work zero), **`T.nc`/`ALL_T.nc`** (tool change),
+  **`slib-g.nc`/`slib-m.nc`/`slibuser.nc`** (G / M / user libraries), **`absX..B.nc`**.
+- `advstart.nc` is **not** in the Expert list (it's a V4.1 file — the "Advanced Start" feature).
+
 ## Error-readback options (ranked)
 1. **Serial Modbus (best):** a `sysstart`/dispatcher macro periodically `MSETDATA`s the alarm/status
    vars to the PC slave. `[VERIFY which system var holds the live alarm code.]`
