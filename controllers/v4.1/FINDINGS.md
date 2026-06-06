@@ -15,6 +15,8 @@
   `net use \\10.0.0.50\IPC$ /user:guest ""` — *then* the shares open.
 - Controller network params already set: `#325` network ON, `#327`=10.0.0.50, `#328`=255.255.255.0,
   `#329`=10.0.0.1, `#330`=10.0.0.34 (PC). Network param changes need a reboot. `[CONFIRMED]`
+- **Port scan (2026-06-06): only `139` + `445` (SMB/NetBIOS) open.** No telnet/SSH/FTP/web/rsync/NFS.
+  `[CONFIRMED]` → the SMB share is the *only* network channel; there is no hidden service/shell to use.
 
 ## Variable storage (`uservar` on SYSDISK)
 - `uservar` = 3200 bytes = **400 little-endian float64**. **slot = (#var − 100)**, covers #100–#499.
