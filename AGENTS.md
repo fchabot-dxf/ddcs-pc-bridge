@@ -29,10 +29,8 @@ from V4.1 firmware**). Before you rely on any finding, check which controller it
 /AGENTS.md            ← you are here
 /CLAUDE.md            ← pointer to this file (auto-loaded by Claude Code)
 /README.md            ← human-facing project overview
-/DESIGN.md            ← architecture & established findings (cross-controller)
-/EXPERIMENTS.md       ← the master experiment roadmap (Tracks A–E)
-/DDCS_RS232_probe_notes.md  ← live working log of the bench investigation (START-HERE handoff at top)
-/ddcs-homebrew-api.skill    ← packaged skill bundling the design docs
+/archive/             ← historical/superseded originals (DESIGN.md, EXPERIMENTS.md, RS232 probe
+                        notes, packaged skill) — context only, NOT current (see archive/README.md)
 
 /controllers/
   README.md           ← ⭐ V4.1-vs-Expert comparison matrix + disambiguation rule

@@ -20,9 +20,8 @@ checking it.
 
 ## Map
 - **[`AGENTS.md`](AGENTS.md)** / [`CLAUDE.md`](CLAUDE.md) — agent entry point + the two-controller rule.
-- [`DESIGN.md`](DESIGN.md) — architecture and established findings.
-- [`EXPERIMENTS.md`](EXPERIMENTS.md) — the experiment roadmap (Tracks A–E).
-- [`DDCS_RS232_probe_notes.md`](DDCS_RS232_probe_notes.md) — live working log (START-HERE handoff up top).
+- [`archive/`](archive/) — historical/superseded originals (DESIGN, EXPERIMENTS, RS232 probe notes,
+  packaged skill). Context only — current truth lives under `controllers/`.
 - [`controllers/`](controllers/) — per-machine findings, build guides, and assets:
   - [`v4.1/FINDINGS.md`](controllers/v4.1/FINDINGS.md) · [`expert-m350/FINDINGS.md`](controllers/expert-m350/FINDINGS.md) · [`shared/ARCHITECTURE.md`](controllers/shared/ARCHITECTURE.md)
 

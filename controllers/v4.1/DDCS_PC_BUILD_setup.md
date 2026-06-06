@@ -113,11 +113,13 @@ IPs stored as raw octet bytes at #327–330. Editing this file over SMB is an al
 **`uservar` file** (`\\<DDCS-IP>\sysdisk\uservar`): 400 doubles; **slot = (variable# − 100)**, range
 #100–#499. This is how the PC reads controller variables (e.g. an error flag set by `error.nc`).
 
-**Error-readback hook:** put `#200 = <code>` (or the alarm-code var) in `\\<DDCS-IP>\sysdisk\error.nc`;
-on any fault it runs, and the PC reads `uservar` slot 100. **Back up the original `error.nc` first.**
+**Error readback:** on V4.1, `error.nc` does **NOT** fire on software/syntax errors (it's a system-alarm
+hook). Detect a bad job instead via the **completion-sentinel** in the running G-code, read from
+`uservar` over SMB. See [`FINDINGS.md`](FINDINGS.md) (Error / fault behavior).
 
-**Serial (M350 only):** Modbus on port 2 — V4.1 has no Modbus. On V4.1, port 1 = M3K keyboard (for the
-trigger rig). See `DDCS_RS232_probe_notes.md` → "TEST PLAN — M3K serial trigger".
+**Serial:** Modbus is M350-only (V4.1 has none). On V4.1, port 1 = M3K keyboard, but its protocol is
+**kernel-level** — blind serial triggering doesn't work. See [`FINDINGS.md`](FINDINGS.md) (Serial +
+Firmware internals); early probe log archived at [`../../archive/DDCS_RS232_probe_notes.md`](../../archive/DDCS_RS232_probe_notes.md).
 
 ## Troubleshooting
 - `net view` → **Access denied / error 5**: you skipped the guest `IPC$` session in Step 4.

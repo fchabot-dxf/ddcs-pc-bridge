@@ -1,7 +1,7 @@
 # Shared Architecture (controller-agnostic)
 
 Concepts that apply to **both** the V4.1 and the Expert. Controller-specific detail lives in each
-`FINDINGS.md`. Full design rationale: [`/DESIGN.md`](../../DESIGN.md); roadmap: [`/EXPERIMENTS.md`](../../EXPERIMENTS.md).
+`FINDINGS.md`. Original design/roadmap (historical, superseded): [`archive/DESIGN.md`](../../archive/DESIGN.md), [`archive/EXPERIMENTS.md`](../../archive/EXPERIMENTS.md).
 
 ## The homebrew API (what the PC/AI should do)
 1. **push_job(file)** — write G-code to the controller's disk (Ethernet/SMB, or Net Disk on Expert).
