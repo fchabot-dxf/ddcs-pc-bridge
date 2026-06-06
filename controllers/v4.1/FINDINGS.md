@@ -165,6 +165,15 @@ format: l<N>" only on-screen); checkpoint granularity is the current substitute 
 - HMI/RS232 port carries **two channels** (TXD1/RXD1, TXD2/RXD2) + 5V pins. **Port 1 = M3K keyboard**
   (input). A listen-only probe on both TX lines was **silent at all bauds** → likely input-only.
   `[CONFIRMED silent]`
+- **Serial SEND test (2026-06-06):** PC→RXD1 (pin 3) and PC→RXD2 (pin 7), swept `0x00–0xFF` at 9 bauds
+  (1200–115200, 8N1) → **zero panel reaction.** The physical link is GOOD: **TXD2 idles at −6.15 V =
+  true RS-232 ±6V** (SABRENT is the correct adapter, pins confirmed), and a **PC loopback** (cable
+  pin 2↔3) echoed perfectly (PC transmits + receives fine). `[CONFIRMED]`
+  ⇒ The silence is the **M3K protocol**: the keyboard port ignores arbitrary bytes — it expects a
+  specific framing/handshake we don't have. **Blind probing can't crack it** (no M3K to sniff; the
+  serial→input driver is kernel-level, not in `ddcsv4.out`). **Serial M3K trigger = impractical.**
+- **⇒ Practical trigger (discrete-run model):** the **External Start input** (NPN active-low contact
+  closure) — a manual button now, or a $6 relay/optocoupler/ESP32 for PC control. No protocol needed.
 - Fred's preferred control path: **Ethernet = data, serial port 1 (M3K) = trigger** — emulate M3K
   keystrokes to press Start/navigate from the PC with no running program. Needs the M3K protocol
   (baud + key→byte map) recovered from `assets/system-backup/current/ddcsv4.out`. `[TO TEST]`
