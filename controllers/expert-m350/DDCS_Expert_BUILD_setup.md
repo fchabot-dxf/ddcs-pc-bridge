@@ -50,9 +50,24 @@ a `pymodbus` slave script. The controller's `MSETDATA` pushes status vars (#200+
 into the PC slave's registers → that's your readback. `MGETDATA` lets the controller pull commands
 from the PC.
 
-**Wiring (find the COM port first — Device Manager → Ports):** for *listening* connect controller
-**TXD2 → cable RXD (pin2)** + GND; to also *send*, connect **cable TX → controller RXD2**. Use a
-DB9 breakout to land just the needed pins (see V4.1 notes for the breakout method).
+**Wiring — exact pin map (CONFIRMED via manual §4.7 / `Распиновка разъёма.pdf`).**
+Controller connector = **DB-9 female**. Full pinout:
+`1=5V  2=RXD1  3=TXD1  4=NC  5=GND  6=5V  7=RXD2  8=TXD2  9=GND`.
+
+Modbus uses **port 2**. Connect **3 wires**, SABRENT cable pin → controller pin:
+
+| SABRENT cable pin | → | Controller pin |
+|---|---|---|
+| **3** (TX, PC out) | → | **7** (RXD2) |
+| **2** (RX, PC in) | → | **8** (TXD2) |
+| **5** (GND) | → | **9** (GND) |
+
+Data crosses over (PC TX → controller RX; controller TX → PC RX); grounds tied. Use a DB-9 breakout to
+land just these 3 pins. (Find the PC COM port in Device Manager → Ports.)
+
+> **M3K keypad** (separate from Modbus) is on **port 1** (RXD1=pin 2, TXD1=pin 3), enabled by
+> **`#268 = M3K`** at **115200** (`#266`/`#267`). Its byte-level protocol is kernel-level (not in the
+> app binaries) — see `FINDINGS.md`.
 
 ---
 
