@@ -22,8 +22,9 @@ findings and assets separate so a fact proven on one is never silently assumed o
 | Network direction | controller **exposes** its disk; PC reads it `[CONFIRMED]` | both: exposes its disk **and** mounts PC-hosted `share` ("Net Disk") `[HYPOTHESIS]` |
 | Default IP scheme | static `192.168.2.x` (we set `10.0.0.50`) | controller `192.168.0.99`, host `192.168.0.100`; manual-IP only |
 | `uservar` store (400×f64, slot = `#var−100`, #100–#499) | ✅ `[CONFIRMED]` | likely same `[TO TEST]` |
-| `error.nc` runs on a **syntax/parse error** | ❌ `[CONFIRMED]` does NOT fire | `[TO TEST]` |
-| `error.nc` runs on a runtime **alarm** (`#3000`) | `[TO TEST]` (test armed) | `[TO TEST]` |
+| `error.nc` auto-runs on a software fault | ❌ `[CONFIRMED]` never fired (syntax err + `#3000`); not a hook in firmware | `[TO TEST]` |
+| `#3000` alarm command (`#3000=1(MSG,…)`) | ❌ `[CONFIRMED]` unsupported → "macro variable assignment error" | ✅ `[CONFIRMED via docs]` |
+| Startup/auto hook that runs at boot | `advstart.nc` (firmware-listed) `[HYPOTHESIS]` | `sysstart.nc` `[CONFIRMED]` |
 | Detect a syntax error over Ethernet (uservar sentinel + checkpoints) | ✅ `[CONFIRMED]` clean *and* error cases | `[TO TEST]` |
 | Run-state files `.file` / `.<f>.nc.env` / `.pos` on SYSDISK | ✅ `.file`=last file (useful); `.env` idx 148/149 do NOT track status `[REFUTED]` | `[TO TEST]` |
 | Serial = **Modbus RTU** (`MSETDATA`/`MGETDATA`, `#279`/`#267`) | ❌ `[CONFIRMED]` not in firmware (checked 2 builds) | ✅ documented `[CONFIRMED via docs]`, params `[VERIFY ON MACHINE]` |

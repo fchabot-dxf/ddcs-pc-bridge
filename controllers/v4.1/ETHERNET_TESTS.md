@@ -15,19 +15,21 @@ Status: ✅ done · 🔄 staged/in-progress · ⬜ to do. Detail/provenance live
 - [x] **Run-state files** — `.file` = last loaded program (useful); `.env` idx 148/149 do NOT track
       status (refuted).
 - [x] **Port scan** — only 139/445 (SMB) open; no hidden telnet/SSH/FTP/web service.
+- [x] **#3000 alarm / `error.nc` on alarm** — `#3000` is NOT an alarm on V4.1 (screen: "macro variable
+      assignment error: L4"; Expert-only feature). `error.nc` did NOT fire. Firmware confirms `error.nc`
+      is **not** a hook on V4.1 → it's just a file nothing auto-runs. Use the sentinel for detection.
 
 ## 🔄 Staged / in progress
-- [ ] **#3000 alarm → error.nc** (`ALARM_TEST.nc` pushed). Does the fault hook fire on a *real alarm*?
-      Read: slot 100 → 8888 = fired; `#202` canary stays 0 = alarm halted. Also note screen (alarm vs
-      "unrecognized") to confirm `#3000` is supported on V4.1.
+- [ ] _(nothing staged — pick the next item below)_
 
 ## ⬜ To do — "can we trigger without the panel?" (decides if serial is needed)
 - [ ] **#2037 virtual buttons** — does a *running* macro pressing `#2037 = 65536+[KeyValue−1000]`
       switch pages / press Start on V4.1? (V4.1 key codes may differ from the M350 table — start with a
       harmless page switch.) Proves the software navigation/Start primitive.
-- [ ] **sysstart.nc auto-run** — confirm `sysstart.nc` runs at boot (drop a marker var, reboot, read it).
-- [ ] **sysstart.nc dispatcher loop** — can sysstart sustain a poll loop that reads a PC-written command
-      file and fires `#2037`? If yes → **zero-hardware control, serial unnecessary.**
+- [ ] **`advstart.nc` auto-run** — V4.1's likely boot/auto hook (firmware-listed; `sysstart` is NOT in
+      V4.1 firmware). Put a marker var in `advstart.nc`, reboot, read it → does it auto-run at boot?
+- [ ] **`advstart.nc` dispatcher loop** — if it auto-runs, can it sustain a poll loop that reads a
+      PC-written command file and fires `#2037`? If yes → **zero-hardware control, serial unnecessary.**
 - [ ] **MDI-over-network** — overwrite `mdiblock`/`mdi.nc` over SMB; can it execute without a panel
       press (on its own, after a refresh, or via a hook firing the MDI-run `#2037`)?
 

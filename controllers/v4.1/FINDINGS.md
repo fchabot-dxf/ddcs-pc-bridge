@@ -33,8 +33,21 @@
   (a *loader* rejection). Lines before the bad line executed (marker var was set), the bad line
   halted it, but `error.nc` (armed to write `#200=8888`) never fired — slot 100 stayed at baseline.
   **Implication: the `error.nc` hook is useless for catching the syntax errors we care most about.**
-- **`error.nc` on a runtime alarm (`#3000`)** — `[TO TEST]` (test file `FAULT_TESTB2.nc` armed on
-  CNCDISK; `error.nc` currently = `#200 = 8888`, pristine empty backup in `assets/error.nc.bak`).
+- **`error.nc` did NOT fire on `#3000` either.** `[CONFIRMED]` On V4.1 `#3000=1(MSG,...)` is **not an
+  alarm** — the screen showed *"macro variable assignment error: L4"* (it tried to assign var #3000).
+  Execution halted, slot 100 stayed 22222. So `error.nc` has now failed to fire on **every** software
+  error type tested.
+- **Firmware confirms `error.nc` is not a hook on V4.1.** `[CONFIRMED from strings]` `error.nc` does
+  **not** appear in the firmware's macro-hook filename table (which lists `advstart.nc`, `loadbreak.nc`,
+  `simulate.nc`, `M3/M4/M5`, `pause.nc`, `probe-*`, `zero*`, `home_ref*`, `end.nc`…). The only
+  near-match is an unrelated token `Perror.nc` elsewhere in the binary (not present on disk). → on the
+  V4.1, **`error.nc` is just a file nothing auto-runs.**
+- **`#3000` alarm command is Expert/M350-only** (came from the M350-focused `ddcs-expert` skill). `[CONFIRMED]`
+- **`sysstart.nc` is NOT in V4.1 firmware** — DESIGN's "sysstart auto-runs at boot `[CONFIRMED]`" was an
+  *Expert* finding. The V4.1's firmware-listed startup/auto hook is likely **`advstart.nc`** ("advanced
+  start", 8 B on disk). `[HYPOTHESIS → test next]`
+- **Untestable on the bench:** whether `error.nc` or any hook fires on a *hardware* alarm
+  (limit / E-stop / servo) — a bare unit with no switches can't produce one. `[TO TEST w/ hardware]`
 
 ### Detecting syntax errors over Ethernet — RESULTS (tested 2026-06-06)
 1. **Completion sentinel + checkpoints** `[CONFIRMED both directions]` — write a start-marker near the
