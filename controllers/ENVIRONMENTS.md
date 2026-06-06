@@ -35,7 +35,7 @@ verdict, not the IP.
 | Controller | DDCS **Expert M350** on Ultimate Bee 1010 | target |
 | Controller IP | `192.168.0.99` (manual-IP only) | `[VERIFY ON MACHINE]` |
 | Host/PC IP | `192.168.0.100` | `[VERIFY]` |
-| PC (laptop) | **ASUS A15 TUF** — hostname `__________`, IP `__________` | `[TO FILL]` |
+| PC (laptops) | **ASUS A15 TUF** and **Panasonic Toughbook** — hostnames `__________`, IPs `__________` | `[TO FILL]` |
 | Network | **direct PC↔controller Ethernet link (no router)** → static IPs both ends; PC may host a `share` ("Net Disk") | `[VERIFY]` |
 | Serial | SABRENT FTDI, COM `____`; **Modbus on port 2**, port 1 = M3K | `[VERIFY]` |
 | File access | test V4.1 SMB recipe vs Expert IP, and/or Net Disk | `[TO TEST]` |
@@ -43,6 +43,7 @@ verdict, not the IP.
 
 ## Per-PC reminder
 Every PC step (SMB1 client, guest logon, serial COM number, static IP) is **per-machine** — redo it
-on each new PC. The COM port and PC IP **will differ** between RENDERRANCHY and the studio laptop.
+on each new PC. The COM port and PC IP **will differ** across all three machines (home RENDERRANCHY,
+studio ASUS A15 TUF, studio Panasonic Toughbook).
 
 <!-- Add more locations / details below as needed. -->
