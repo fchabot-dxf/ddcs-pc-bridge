@@ -1,4 +1,4 @@
-# ddcs-dispatch.ps1 — PC orchestrator for the V4.1 "M47 self-loop" software dispatcher.
+# ddcs-dispatch.ps1 - PC orchestrator for the V4.1 "M47 self-loop" software dispatcher.
 #
 # Proven mechanics this builds on (see ../FINDINGS.md):
 #   - An M47 loop re-reads its program file from disk EVERY cycle  -> commands travel in the file.
@@ -10,7 +10,7 @@
 # Usage (dot-source, then call):
 #   . .\ddcs-dispatch.ps1 -Ip 10.0.0.50
 #   Initialize-Dispatcher              # writes idle DISPATCH.nc; operator selects it + Start once
-#   $id = Send-DdcsJob "#250=4242"     # push a job (any G-code WITHOUT loop-breakers); returns its id
+#   $id = Send-DdcsJob "#250=4242"     # push a job (G-code WITHOUT loop-breakers); returns its id
 #   Wait-DdcsJob $id                   # poll until DONE / ERROR / TIMEOUT
 #   Get-DdcsStatus                     # heartbeat + protocol vars
 
@@ -25,11 +25,11 @@ $script:Uservar  = "$script:Sys\uservar"
 $script:IdFile   = Join-Path $env:TEMP "ddcs_dispatch_lastid.txt"
 
 # protocol variables (#var); all in uservar readback range #100-#499 (slots 140-146)
-$script:V_CMD = 240   # command id   (set by the file literal each cycle)
-$script:V_LAST= 241   # last-done id (RAM gate; persists across cycles -> run-once)
-$script:V_START=243   # started-id sentinel
-$script:V_DONE =244   # done-id sentinel
-$script:V_HB  = 246   # heartbeat / cycle counter
+$script:V_CMD  = 240   # command id   (set by the file literal each cycle)
+$script:V_LAST = 241   # last-done id (RAM gate; persists across cycles -> run-once)
+$script:V_START= 243   # started-id sentinel
+$script:V_DONE = 244   # done-id sentinel
+$script:V_HB   = 246   # heartbeat / cycle counter
 
 function Connect-Ddcs { cmd /c "net use \\$Ip\IPC`$ /user:guest `"`"" 2>$null | Out-Null }
 
@@ -70,9 +70,9 @@ function Test-JobSafe([string]$job) {
 function Initialize-Dispatcher {
     Connect-Ddcs
     [System.IO.File]::WriteAllText($script:DispPath, (Build-Dispatcher 0 "(idle - no job)"))
-    "Wrote idle $script:DispName to $script:Cnc."
-    "==> On the panel: select $script:DispName and press Start ONCE to bootstrap the loop."
-    "    Then run Get-DdcsStatus and confirm #$($script:V_HB) (heartbeat) is incrementing."
+    Write-Host "Wrote idle $script:DispName to $script:Cnc."
+    Write-Host "==> On the panel: (Reset if in an error state), select $script:DispName, press Start ONCE to bootstrap."
+    Write-Host "    Then run Get-DdcsStatus and confirm #$($script:V_HB) (heartbeat) is incrementing."
 }
 
 # Push a job: bump id, build file, ATOMIC write (temp -> rename), return the id.
@@ -84,7 +84,7 @@ function Send-DdcsJob([string]$GCode) {
     Set-Content -Path $script:IdFile -Value $id
     [System.IO.File]::WriteAllText($script:TmpPath, (Build-Dispatcher $id $GCode))
     Move-Item -Force -Path $script:TmpPath -Destination $script:DispPath   # atomic-ish rename into place
-    "Sent job id=$id (atomic). Poll with: Wait-DdcsJob $id"
+    Write-Host "Sent job id=$id (atomic). Poll with: Wait-DdcsJob $id"
     return $id
 }
 
@@ -94,14 +94,14 @@ function Wait-DdcsJob([int]$Id, [int]$TimeoutSec = 20) {
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     while ((Get-Date) -lt $deadline) {
         if ((Read-DdcsVar $script:V_DONE) -eq $Id) {
-            return [pscustomobject]@{ Id=$Id; Status="DONE" }
+            return [pscustomobject]@{ Id = $Id; Status = "DONE" }
         }
         Start-Sleep -Milliseconds 300
     }
     if ((Read-DdcsVar $script:V_START) -eq $Id) {
-        return [pscustomobject]@{ Id=$Id; Status="ERROR/STALLED — started but never finished (likely a syntax error halted the loop; re-bootstrap with one Start)" }
+        return [pscustomobject]@{ Id = $Id; Status = "ERROR/STALLED (started but never finished; likely a syntax error halted the loop - re-bootstrap with one Start)" }
     }
-    return [pscustomobject]@{ Id=$Id; Status="TIMEOUT — job not picked up (loop not running? re-bootstrap)" }
+    return [pscustomobject]@{ Id = $Id; Status = "TIMEOUT (job not picked up; loop not running? re-bootstrap)" }
 }
 
 function Get-DdcsStatus {
