@@ -127,7 +127,16 @@ format: l<N>" only on-screen); checkpoint granularity is the current substitute 
 - **Prototype:** [`dispatcher/`](dispatcher/) — `ddcs-dispatch.ps1` (atomic-write orchestrator) +
   run-once command protocol (cmd-id `#240` vs RAM gate `#241`; started/done sentinels `#243`/`#244`;
   heartbeat `#246`). See [`dispatcher/README.md`](dispatcher/README.md).
-- **Caveats / next:**
+- **⚠️ No live readback (tested 2026-06-06):** variables flush to `uservar` **only at run start/stop,
+  not mid-loop.** A running `M47` dispatcher's heartbeat `#246` froze (2 while looping) — the PC is
+  blind to results until the loop ends. `[CONFIRMED]` Also, the run-once `IF/GOTO`+`M47` loop didn't
+  sustain (ran ~2 cycles then ended), unlike the bare `LOOP_TEST` (3024 cycles).
+- **⇒ Recommended architecture = discrete per-job runs, not a free-running loop:** PC writes
+  job + completion-sentinel → **trigger one Start** → job runs and ends (`M30`) → flush → PC reads the
+  sentinel (clean / errored at line). Reliable (sentinel + file-reload proven) and *is* the
+  "did my G-code error?" goal. Cost: **one trigger per job** (serial Start-key / External Start /
+  manual press) — which is why the serial Start-key matters.
+- **Caveats / next (free-running variant, deprioritized):**
   - The loop spins fast (no reliable `G4` pacing) and the PC overwrites a file the controller is
     actively re-reading → **atomic writes (temp + rename)** avoid torn reads. `[TO TEST]`
   - **A bad job halts the whole loop** (syntax error, no `error.nc`, no try/catch) → it needs a Start
