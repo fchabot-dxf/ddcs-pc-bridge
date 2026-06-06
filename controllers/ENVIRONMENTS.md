@@ -32,12 +32,13 @@ verdict, not the IP.
 ### 🏭 Studio — DDCS **Expert (M350)** (real machine)
 | | Value | Status |
 |---|---|---|
-| Controller | DDCS **Expert M350** on Ultimate Bee 1010 | target |
-| Controller IP | `192.168.0.99` (manual-IP only) | `[VERIFY ON MACHINE]` |
+| Controller | DDCS **Expert M350** on Ultimate Bee 1010 — model **DDCSE-5T-standard**, panel "V1.1", **SW Ver 2025-06-19-00**, HW 2021-1213-23, S/N `Digital Dream-0350-3651980d6ca215fb-0000` | `[CONFIRMED on panel 2026-06-06]` |
+| Controller IP | `192.168.0.99` (manual-IP only) — **`#284 Network boot mode` was `Close`** (NIC disabled → "Cable IP: Disconnect"); set to `manu-IP` + reboot to bring Ethernet up | `[VERIFY after set]` |
 | Host/PC IP | `192.168.0.100` | `[VERIFY]` |
-| PC (laptops) | **ASUS A15 TUF** and **Panasonic Toughbook** — hostnames `__________`, IPs `__________` | `[TO FILL]` |
+| PC (laptops) | **ASUS A15 TUF** (hostname `____`) and **Panasonic Toughbook** = hostname **`CNC-FAIRY`** | Toughbook `[CONFIRMED 2026-06-06]`, ASUS `[TO FILL]` |
 | Network | **direct PC↔controller Ethernet link (no router)** → static IPs both ends; PC may host a `share` ("Net Disk") | `[VERIFY]` |
-| Serial | SABRENT FTDI, COM `____`; **Modbus on port 2**, port 1 = M3K | `[VERIFY]` |
+| CNC-FAIRY wired NIC | adapter name `Ethernet`, MAC `4C-36-4E-94-D4-10`; set static `192.168.0.100/24` here | `[2026-06-06: link DOWN — controller off/cable unseated]` |
+| Serial | SABRENT FTDI, COM `____`; **Modbus on port 2**, port 1 = M3K | `[VERIFY — adapter not yet plugged into CNC-FAIRY 2026-06-06]` |
 | File access | test V4.1 SMB recipe vs Expert IP, and/or Net Disk | `[TO TEST]` |
 | Setup guide | `expert-m350/DDCS_Expert_BUILD_setup.md` | — |
 

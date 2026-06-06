@@ -24,11 +24,25 @@ bench-proven. **Do not assume V4.1 findings carry over** — see [`../README.md`
 - **Homebrew architecture:** PC runs a **Modbus SLAVE**; the DDCS (master) pushes status vars (#200+,
   incl. error/exception) via `MSETDATA` and reads commands via `MGETDATA`. Bidirectional, documented.
 
-### Params to set (numbers shift by firmware → VERIFY)
-- Enable **Modbus RTU**: Russian doc says `#279`, but the official Expert manual lists `#279` as
-  "Barcode file location." **Browse the Param page (F3) by name and enable "Modbus RTU".** `[VERIFY ON MACHINE]`
-- Port-2 baud: params **`#266`/`#267`** (B2400/B4800/B9600/B19200/B115200). Confirm which is port 2. `[VERIFY]`
-- **Reboot** after serial/network param changes. `[CONFIRMED via docs]`
+### Params — read off the real machine `[CONFIRMED on machine 2026-06-06, fw 2025-06-19-00]`
+Photographed the **System → param list** on the studio Expert (model **DDCSE-5T-standard**, panel
+"DDCS Expert V1.1", **Software Ver 2025-06-19-00**, HW 2021-1213-23). Confirmed numbers on THIS firmware:
+
+| # | Name (as shown) | Value seen | Notes |
+|---|---|---|---|
+| `#266` | **Serial 1 baud rate** | `B115200` | Serial 1 = M3K keyboard port |
+| `#267` | **Serial 2 baud rate** | `B115200` | **Serial 2 = Modbus data port** |
+| `#268` | **External keyboard type** | `other` | set to `M3K` to enable the M3K keypad (port 1) |
+| `#278` | USB keyboard type | `keyboard` | |
+| `#279` | **Modbus RTU** | `NO` | ⭐ **RESOLVED: #279 IS the Modbus-RTU enable** (not "Barcode file location" as the official manual claimed) — set to enable Modbus |
+| `#284` | **Network boot mode** | `Close` | ⭐ set to **manu-IP** to bring the Ethernet up (Cable IP shows "Disconnect" while Close) |
+| `#296` | **Serial 2 Parity method** | `None` | → Serial 2 = **8N1** |
+| `#297` | **Serial 2 Stop bits** | `1` | → Serial 2 = **8N1** |
+
+⇒ Modbus port-2 framing is confirmed **115200 8N1** straight off the panel. "Restart takes effect" for
+network/serial params. The Param page has a **Search** soft-key and a **`#50-#499`** (uservar) viewer.
+
+- **Reboot** after serial/network param changes. `[CONFIRMED via docs + panel note "Restart takes effect"]`
 
 ## Firmware internals (Expert NAND backup `nand1-1`, static analysis 2026-06-06)
 From the `ddcs-expert` skill's `firmware-backup-2025-12-31/.../nand1-1/`. Expert SoC ≠ V4.1
@@ -69,10 +83,43 @@ DB-9 **female** on the controller (manual §4.7, `assets/Modbus_RS232_DDCSE/Ра
 
 ## Network (differs from V4.1)
 - Expert supports **manual IP only**. Defaults: controller `192.168.0.99`, host `192.168.0.100`.
-- `#284 "Network Boot Mode" → manu-IP`, then System Info (F6) → "Set IP Addr" (F4). Reboot. `[CONFIRMED via docs]`
-- **Both disk directions likely exist** (V4.1 shows Local + Net Disk): PC can read the controller's
-  disk (V4.1-style — *test the SMB recipe against the Expert IP*) **and** the controller can mount a
-  PC-hosted `share` as "Net Disk". `[HYPOTHESIS]` (U-disk and Net Disk can't be active at once.)
+- `#284 "Network boot mode"` options are **`Close` / `auto` / `manu`** — set to **`manu`** (static),
+  then System Set → "Set IP Addr" (Cable + Host). **Restart takes effect.** `[CONFIRMED on machine 2026-06-06]`
+  - While `#284=Close` the cable NIC is **off** (System Info shows "Cable IP: Disconnect" and the
+    Cable-IP field is uneditable). Setting `manu` + reboot brings it up. The PC NIC stays
+    `Disconnected` (link-down) until the controller NIC powers on.
+- `network.conf` (on SYSDISK) stores the manual IPs as plain text (line2=Cable IP, line3=Host IP).
+
+## ⭐ SMB file access — CONFIRMED on the real machine `[CONFIRMED 2026-06-06, fw 2025-06-19-00]`
+The **V4.1 SMB recipe works as-is on the Expert** (PC reads/writes the controller's disk). Setup that worked
+on the studio Toughbook **CNC-FAIRY** (fresh Win11): static `192.168.0.100/24` on the wired NIC; enable SMB1
+client + `EnableInsecureGuestLogons $true` + `BlockNTLM $false` (admin + reboot); then
+`net use \\192.168.0.99\IPC$ /user:guest ""` and **map the shares to drive letters** (raw-UNC
+`Test-Path \\ip\sysdisk` is flaky under SMB1-guest — `net use S: \\192.168.0.99\SYSDISK` works).
+- Shares: **`CNCDISK`** + **`SYSDISK`** (same names as V4.1). Server = "Arm Linux Samba Server", netbios `CNC-PDA`.
+- **`smb.conf`** (read off SYSDISK): `security = share`, **`guest account = root`** (guest = full root access),
+  **`SYSDISK → /mnt/nand1-1/`** (the same `nand1-1` mount as the firmware backup — `parse.out` lives here),
+  **`CNCDISK → /local/`**, both **`writeable = yes`**.
+- **Read AND write CONFIRMED** end-to-end (round-trip write/read/delete on CNCDISK from the PC).
+- ⇒ The PC↔Expert file channel is fully bidirectional — the V4.1 dispatcher trick (overwrite a loop file
+  over SMB) should port directly. Net Disk (controller-mounts-PC) is a *separate* option, not needed for this.
+- **`uservar` lives on CNCDISK** here (`/local/uservar`, **3601 B = 450×f64 + 1 trailing byte**), NOT on
+  SYSDISK as on the V4.1 (3200 B). **Slot map `slot = #var − 100` CONFIRMED** by decoding live values over
+  SMB (operator test writes 111/222/…/888 landed exactly on `#150,#151,#200,#250,#350,#450,#520,#521`).
+  ⇒ **Expert `uservar` range = #100–#549** (450 slots; bigger than V4.1's #100–#499). The PC reads controller
+  state by decoding this file as little-endian f64 — `[CONFIRMED readback 2026-06-06]`. Slot 0 = byte 0 (no header).
+- Run-state hidden files exist on SYSDISK: per-program **`.<name>.nc.pos`** (60 B each) and **`.break0/.break1`**
+  (breakpoint-resume) — same family as the V4.1 run-state files. `[TO TEST what they track]`
+
+## System / macro variables (read off the operator's live macros 2026-06-06) `[CONFIRMED on machine]`
+From `READ_VAR.nc`, `COPY_WCS.nc`, `SAVE_WCS_XY_AUTO.nc`, `sysstart.nc` on this machine:
+- `#578` = **active WCS number** (1=G54 … 6=G59).
+- `#880` / `#881` = **current machine X / Y position**. (`sysstart` does `#883=#881` for gantry A←Y sync.)
+- **WCS offset block:** base `= 805 + [WCS−1]*5`; within a block **X=base, Y=base+1, A=base+3**
+  (G54 = #805–809, G55 = #810–814, …). `#1518` = "A homed" flag.
+- **On-screen message:** `#1505 = -5000(text with %f)`, args in `#1510` / `#1511`.
+- **Numeric input prompt:** `#2070 = <var>(prompt text)` — pauses for operator entry into that var.
+- Indirect addressing works: `#[#100]` reads the var whose number is in `#100` (used for the var-reader).
 
 ## Control
 - `#2037` **virtual buttons** press any of 201 panel functions from a running macro
@@ -97,10 +144,21 @@ to the Expert. **Verify on the actual machine `[TO TEST]`:** file-reload / `M47`
 ## Macro hooks — official install-file description `[CONFIRMED via docs]`
 From the DDCS-Expert "install file description". These auto-run / are invoked by the firmware:
 - **`sysstart.nc`** — *"Boot initialization file — can modify it."* Auto-runs at **boot**. This is the
-  Expert's hands-free entry point (the dispatcher-bootstrap candidate). **Absent on V4.1.** On this
-  machine it contains: `M115` (built-in "standard startup homing") → `G04 P1.0` → gantry sync
-  `#883=#881` (A←Y) → `#1518=1` (mark A homed). `M115` is an Expert firmware built-in (no macro file
-  defines it); the **V4.1 has no `M115`** (use `G128 X1Y1Z1A1` / `M105-M108` there).
+  Expert's hands-free entry point (the dispatcher-bootstrap candidate). **Absent on V4.1.** **Operator-
+  customizable, and HAS been customized on this machine** — the live file read 2026-06-06 is *not* the
+  factory default. Factory default (per docs) was `M115` (built-in homing) → `G04 P1.0` → sync. The
+  **current live `sysstart.nc`** (operator-modified) homes each axis via a subprogram instead:
+  ```
+  (Start Homing Sequence)
+  M98 P501 X2   (Home Z)
+  M98 P501 X0   (Home X)
+  M98 P501 X1   (Home Y)
+  #883 = #881   (gantry sync A<-Y, after motion stops)
+  #1518 = 1     (mark A homed)
+  M30
+  ```
+  ⇒ confirms `sysstart.nc` auto-runs at boot AND is freely editable — **the place to bootstrap a
+  PC-fed dispatcher**. `M115`/`M98 P501` are Expert homing; the **V4.1 has no `M115`** (`G128`/`M105-108` there).
 - **`error.nc`** — *"When system abnormal working, system will execute this file."* A **system-fault /
   alarm** hook (NOT a G-code syntax-error hook — see V4.1 findings; program errors won't trigger it).
 - **`pause.nc`** (pause), **`key-1.nc`…`key-7.nc`** (K1–K7), **`ext_button.nc`** + **`extnc0/1/2-N.nc`**
@@ -122,7 +180,12 @@ From the DDCS-Expert "install file description". These auto-run / are invoked by
 - `assets/Modbus_RS232_DDCSE.rar` — original archive. `assets/RS232-DDCSE осциллограмма.pdf` — scope capture.
 
 ## Open actions
-- [ ] On the actual Expert: confirm SMB read of `uservar`/`error.nc` (V4.1 recipe vs Expert IP).
-- [ ] Identify the real param numbers for Modbus-RTU enable + port-2 baud (browse by name).
-- [ ] Stand up a PC Modbus slave (Termite or `pymodbus`); confirm `MSETDATA` pushes #200+ to it.
+- [x] ~~Confirm SMB read of `uservar`/`error.nc`~~ — **DONE 2026-06-06**: full SMB **read+write** confirmed
+      (V4.1 recipe works; CNCDISK=/local/, SYSDISK=/mnt/nand1-1/, guest=root, writeable). See SMB section above.
+- [x] ~~Identify real param numbers for Modbus-RTU enable + port-2 baud~~ — **DONE**: `#279`=Modbus RTU,
+      `#267`=Serial-2 baud (115200), `#296`/`#297`=Serial-2 parity/stop (8N1). See param table above.
+- [x] ~~Confirm `uservar` slot layout~~ — **DONE 2026-06-06**: `slot=#var−100`, range **#100–#549** (450×f64). See SMB section.
+- [ ] **Serial BLOCKED — needs a proper ferrule** to land pins 7/8/9. Then: wire SABRENT to port 2, find its COM on CNC-FAIRY, enable `#279`=Modbus, reboot.
+- [ ] Stand up a PC Modbus slave (`pymodbus`); confirm `MSETDATA` pushes #200+ to it.
 - [ ] Find the system var holding the live alarm code → log *which* error.
+- [ ] Port the V4.1 `M47` dispatcher to `sysstart.nc` here (file-reload trick over SMB) — **safety first** (E-stop).

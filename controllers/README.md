@@ -18,10 +18,10 @@ findings and assets separate so a fact proven on one is never silently assumed o
 
 | Capability | DDCS V4.1 (bench, `10.0.0.50`) | DDCS Expert / M350 (target) |
 |---|---|---|
-| SMB file share over Ethernet | ✅ `[CONFIRMED]` R/W to `\\10.0.0.50\cncdisk` + `\sysdisk` (SMB1 + guest) | likely (Linux/Samba), `[TO TEST]` — test V4.1 recipe vs Expert IP |
-| Network direction | controller **exposes** its disk; PC reads it `[CONFIRMED]` | both: exposes its disk **and** mounts PC-hosted `share` ("Net Disk") `[HYPOTHESIS]` |
+| SMB file share over Ethernet | ✅ `[CONFIRMED]` R/W to `\\10.0.0.50\cncdisk` + `\sysdisk` (SMB1 + guest) | ✅ `[CONFIRMED 2026-06-06]` R/W to `\\192.168.0.99\CNCDISK`+`SYSDISK` (V4.1 recipe works; guest=root; SYSDISK=/mnt/nand1-1/, CNCDISK=/local/) |
+| Network direction | controller **exposes** its disk; PC reads it `[CONFIRMED]` | exposes its disk, PC reads+writes it ✅ `[CONFIRMED 2026-06-06]`; also mounts PC-hosted `share` ("Net Disk") `[HYPOTHESIS]` |
 | Default IP scheme | static `192.168.2.x` (we set `10.0.0.50`) | controller `192.168.0.99`, host `192.168.0.100`; manual-IP only |
-| `uservar` store (400×f64, slot = `#var−100`, #100–#499) | ✅ `[CONFIRMED]` | likely same `[TO TEST]` |
+| `uservar` store (slot = `#var−100`) | ✅ `[CONFIRMED]` on SYSDISK, 400×f64 (#100–#499) | ✅ `[CONFIRMED 2026-06-06]` on **CNCDISK** (`/local/uservar`), **450×f64 → #100–#549**; same `slot=#var−100`; read live over SMB |
 | `uservar` as PC→program *inbound* channel | ❌ `[CONFIRMED]` program reads RAM; file writes ignored (readback-only) | `[TO TEST]` |
 | Live inbound channel to a running program | ✅ via the **program file** — `M47` self-loop re-reads disk each cycle, PC overwrites it `[CONFIRMED]`; `uservar` vars do NOT | Modbus serial (`MGETDATA`) `[CONFIRMED via docs]` |
 | Software dispatcher (1 bootstrap Start, then SMB-fed jobs) | ✅ `[CONFIRMED]` `M47` loop + overwrite file; no per-job trigger | `sysstart` loop = zero-touch `[likely]` |
@@ -32,8 +32,8 @@ findings and assets separate so a fact proven on one is never silently assumed o
 | Boot-time auto-run hook | none confirmed; no `sysstart`; `advstart.nc` = Advanced-Start feature `[TO TEST]` | `sysstart.nc` boot-init `[CONFIRMED via docs]` |
 | Home-all / startup-homing command | `G128 X1Y1Z1A1` or `M105`+`M106`+`M107`+`M108` `[CONFIRMED via manual]` | `M115` (firmware built-in) `[CONFIRMED]` |
 | Detect a syntax error over Ethernet (uservar sentinel + checkpoints) | ✅ `[CONFIRMED]` clean *and* error cases | `[TO TEST]` |
-| Run-state files `.file` / `.<f>.nc.env` / `.pos` on SYSDISK | ✅ `.file`=last file (useful); `.env` idx 148/149 do NOT track status `[REFUTED]` | `[TO TEST]` |
-| Serial = **Modbus RTU** (`MSETDATA`/`MGETDATA`, `#279`/`#267`) | ❌ `[CONFIRMED]` not in firmware (checked 2 builds) | ✅ documented `[CONFIRMED via docs]`, params `[VERIFY ON MACHINE]` |
+| Run-state files `.file` / `.<f>.nc.env` / `.pos` on SYSDISK | ✅ `.file`=last file (useful); `.env` idx 148/149 do NOT track status `[REFUTED]` | `.<name>.nc.pos` (60 B) + `.break0/.break1` present `[CONFIRMED present 2026-06-06; semantics TO TEST]` |
+| Serial = **Modbus RTU** (`MSETDATA`/`MGETDATA`) | ❌ `[CONFIRMED]` not in firmware (checked 2 builds) | ✅ `[CONFIRMED on machine]` **`#279`=Modbus RTU enable**, **`#267`**=Serial-2 baud (B115200), `#296`/`#297`=Serial-2 parity/stop → **115200 8N1**; `#284`=Network boot mode (fw 2025-06-19-00) |
 | Serial port 1 = **M3K keyboard** | ✅ (listen test was silent — input port) | ✅ port 1 = M3K, port 2 = Modbus data |
 | `#2037` virtual buttons (press panel keys from macro) | `[TO TEST]` | ✅ `[CONFIRMED]` (per ddcs-expert skill) |
 | Passwords | Super Admin `888888` | Operator `666666` / Admin `777777` / Super Admin `888888` |
