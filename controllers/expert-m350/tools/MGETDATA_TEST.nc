@@ -1,0 +1,13 @@
+(MGETDATA TEST - controller READS from the PC slave - NO MOTION)
+(PC slave seeded HOLDING regs 10-11 = bytes 55 66 77 88)
+(Success: #200=55 #201=66 #202=77 #203=88)
+(MGETDATA X1=200 X2=1 X3=10 X4=4 X5=3 X6=300)
+MGETDATA[200,1,10,4,3,300]
+#1510 = #200
+#1511 = #201
+#1505 = -5000(MGETDATA #200=%.0f #201=%.0f)
+G04 P1.0
+#1510 = #202
+#1511 = #203
+#1505 = -5000(MGETDATA #202=%.0f #203=%.0f)
+M30

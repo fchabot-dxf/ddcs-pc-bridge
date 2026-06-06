@@ -81,6 +81,9 @@ def main():
     )
     context = ModbusServerContext(slaves={args.slave: store}, single=False)
 
+    # Seed HOLDING regs 10..11 with a known pattern so an MGETDATA[...,10,4,3,...] read
+    # returns recognizable bytes: addr10 -> #=55,66 ; addr11 -> #=77,88  (little-endian: reg=hi<<8|lo)
+    store.setValues(3, 10, [(66 << 8) | 55, (88 << 8) | 77])  # fc=3 -> holding registers
     print(f"Modbus RTU slave up: {args.port} @ {args.baud} 8N1, unit id {args.slave}")
     print("Waiting for the controller (master) to MSETDATA/MGETDATA. Ctrl+C to stop.\n", flush=True)
     StartSerialServer(

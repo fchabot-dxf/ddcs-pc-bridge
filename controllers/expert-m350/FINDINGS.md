@@ -222,6 +222,27 @@ From the DDCS-Expert "install file description". These auto-run / are invoked by
   **`slib-g.nc`/`slib-m.nc`/`slibuser.nc`** (G / M / user libraries), **`absX..B.nc`**.
 - `advstart.nc` is **not** in the Expert list (it's a V4.1 file — the "Advanced Start" feature).
 
+## ⭐ Run-state / alarm system variables — the readback backbone `[CONFIRMED via variable-map xlsx 2026-06-06]`
+From `DDCS_Variables_mapping_2025-01-04.xlsx` (skill), cross-checked against `slib-m.nc`/`slib-g.nc`:
+- **`#1630`–`#1636` = Analyze channel 1–7 STATUS: `-1` Idle / `0` Working / `1` Pause.** ⭐ This is the live
+  run-state of the program executor. A watchdog macro (in a *different* channel) reads `#1630` and
+  `MSETDATA`s it to the PC → the PC knows running / paused / stopped without watching the screen.
+- **`#1620`–`#1626` = Analyze channel 1–7 EXECUTION method:** `0`=Start/Restart, `1`=Internal Pause,
+  `2`=External Pause. Writing these *commands* a channel. ⇒ corrects the earlier note: `M47` (`O10047`)
+  does `#1620=1` = "request internal pause on channel 1" (not a generic feed-hold flag).
+- **Servo alarm signals:** `#1000`(X) `#1003`(Y) `#1006`(Z) `#1009`(4th) `#1012`(5th); system alarm out `#1236`.
+- Per-axis analyzing-vs-manual mark: `#1800`–`#1804`. Error key-indicator: `#1931`.
+- ⚠️ **The Expert has 7 parallel "analyze channels."** This is the architecture for a non-blocking watchdog:
+  run the job in one channel, a status-pusher in another. **Single-channel readback is dangerous** — the
+  `MGETDATA`/`MSETDATA` ~16 s blocking wait can **wedge the channel hard enough to require a reboot**
+  (observed 2026-06-06: a bad test macro froze "analysis", Reset would not clear it). `[CONFIRMED]`
+- **NOTE:** no single "last syntax-error code + line" variable was found in the map. The on-screen
+  System Log shows `syntax error: Ln` but is **not** persisted to a readable file (checked SYSDISK/CNCDISK
+  mtimes after a live syntax error — nothing updated). ⇒ exact syntax-error text/line is **not** directly
+  remotely readable; detect via run-state (`#1630`) + checkpoint sentinels + `.pos` (did-it-run) instead.
+- **`.<name>.nc.pos`** is created/updated only when a program actually RUNS (errored-at-parse programs
+  leave none) → a pollable "did it execute" flag over SMB. `[CONFIRMED 2026-06-06]`
+
 ## Error-readback options (ranked)
 1. **Serial Modbus (best):** a `sysstart`/dispatcher macro periodically `MSETDATA`s the alarm/status
    vars to the PC slave. `[VERIFY which system var holds the live alarm code.]`
