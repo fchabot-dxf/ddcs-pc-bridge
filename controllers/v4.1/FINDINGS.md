@@ -172,6 +172,11 @@ format: l<N>" only on-screen); checkpoint granularity is the current substitute 
   ⇒ The silence is the **M3K protocol**: the keyboard port ignores arbitrary bytes — it expects a
   specific framing/handshake we don't have. **Blind probing can't crack it** (no M3K to sniff; the
   serial→input driver is kernel-level, not in `ddcsv4.out`). **Serial M3K trigger = impractical.**
+- **Boot-console hunt (2026-06-06):** listened on **TXD1 (pin 4)** and **TXD2 (pin 8)** during power-on,
+  swept 9600/19200/38400/57600/115200 → **0 bytes** (TXD2 gave 2 power-on nulls). **No boot console on
+  the external HMI/RS232 port.** Any U-Boot/Linux console is on an **internal debug-UART header**
+  (case-open to find) or disabled → **no easy shell / NAND-dump via the external port.** `[CONFIRMED]`
+  Tool: [`listen.ps1`](listen.ps1) (auto baud-sweep, live).
 - **⇒ Practical trigger (discrete-run model):** the **External Start input** (NPN active-low contact
   closure) — a manual button now, or a $6 relay/optocoupler/ESP32 for PC control. No protocol needed.
 - Fred's preferred control path: **Ethernet = data, serial port 1 (M3K) = trigger** — emulate M3K
