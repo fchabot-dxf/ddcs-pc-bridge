@@ -1,0 +1,8 @@
+;浮动对刀
+M5
+
+MarcoDialog "probe-float.rc"
+
+G91G31Z-1000L#682Q1K0F#106
+G90G92Z#109
+G91G0Z#107

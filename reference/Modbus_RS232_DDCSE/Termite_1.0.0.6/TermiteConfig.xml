@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MainConfig xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ChannelsSet>
+    <ChannelsArray />
+  </ChannelsSet>
+  <ComPort>
+    <PortName>COM1</PortName>
+    <BaudRate>9600</BaudRate>
+    <Parity>None</Parity>
+    <DataBits>8</DataBits>
+    <StopBits>One</StopBits>
+    <Timeout>100</Timeout>
+    <TimeoutBetweenSymbols>2</TimeoutBetweenSymbols>
+    <TimeoutBetweenFrames>4</TimeoutBetweenFrames>
+  </ComPort>
+  <ProgConf>
+    <IsLogging>true</IsLogging>
+    <Logs />
+    <FrameTimeView>HIDE</FrameTimeView>
+    <ShowDate>false</ShowDate>
+    <ShowMsInTime>false</ShowMsInTime>
+    <WorkFieldFont>
+      <FontFamily>Courier New</FontFamily>
+      <GraphicsUnit>Point</GraphicsUnit>
+      <Size>9.75</Size>
+      <Style>Regular</Style>
+    </WorkFieldFont>
+    <HintFont>
+      <FontFamily>Courier New</FontFamily>
+      <GraphicsUnit>Point</GraphicsUnit>
+      <Size>9.75</Size>
+      <Style>Regular</Style>
+    </HintFont>
+    <CommandFont>
+      <FontFamily>Courier New</FontFamily>
+      <GraphicsUnit>Point</GraphicsUnit>
+      <Size>9.75</Size>
+      <Style>Regular</Style>
+    </CommandFont>
+    <WorkFieldColor>LightGrey</WorkFieldColor>
+    <HintColor>Silver</HintColor>
+    <CommandColor>White</CommandColor>
+  </ProgConf>
+  <AutoPollConf>
+    <AutoAcqPeriod>100</AutoAcqPeriod>
+    <AutoPollList />
+    <ReqSource>COMMAND_FIELD</ReqSource>
+  </AutoPollConf>
+  <MbRegime>STANDART</MbRegime>
+  <MbCrcOrder>MSB_LSB</MbCrcOrder>
+</MainConfig>
