@@ -24,7 +24,8 @@ findings and assets separate so a fact proven on one is never silently assumed o
 | `uservar` store (400×f64, slot = `#var−100`, #100–#499) | ✅ `[CONFIRMED]` | likely same `[TO TEST]` |
 | `error.nc` runs on a **syntax/parse error** | ❌ `[CONFIRMED]` does NOT fire | `[TO TEST]` |
 | `error.nc` runs on a runtime **alarm** (`#3000`) | `[TO TEST]` (test armed) | `[TO TEST]` |
-| Run-state files `.file` / `.<f>.nc.env` / `.pos` on SYSDISK | ✅ exist; `.env` int32 idx 149 ≈ error line `[HYPOTHESIS]` | `[TO TEST]` |
+| Detect a syntax error over Ethernet (completion sentinel) | ✅ `[CONFIRMED]` start-marker + missing end-sentinel | `[TO TEST]` |
+| Run-state files `.file` / `.<f>.nc.env` / `.pos` on SYSDISK | ✅ `.file`=last file; `.env` idx 148=completion flag `[HYPOTHESIS]`; idx 149 ≠ error line `[REFUTED]` | `[TO TEST]` |
 | Serial = **Modbus RTU** (`MSETDATA`/`MGETDATA`, `#279`/`#267`) | ❌ `[CONFIRMED]` not in firmware (checked 2 builds) | ✅ documented `[CONFIRMED via docs]`, params `[VERIFY ON MACHINE]` |
 | Serial port 1 = **M3K keyboard** | ✅ (listen test was silent — input port) | ✅ port 1 = M3K, port 2 = Modbus data |
 | `#2037` virtual buttons (press panel keys from macro) | `[TO TEST]` | ✅ `[CONFIRMED]` (per ddcs-expert skill) |

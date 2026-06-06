@@ -34,18 +34,28 @@
 - **`error.nc` on a runtime alarm (`#3000`)** — `[TO TEST]` (test file `FAULT_TESTB2.nc` armed on
   CNCDISK; `error.nc` currently = `#200 = 8888`, pristine empty backup in `assets/error.nc.bak`).
 
-### Detecting syntax errors over Ethernet — two software paths under test
-1. **Completion sentinel** `[HYPOTHESIS, partially proven]` — write a start-marker near the top and a
-   completion-sentinel as the *last* line. Syntax errors halt execution partway, so the sentinel never
-   gets written → PC reads "started but didn't finish" = error. Add intermediate checkpoints to
-   localize. (Half-proven: the start-marker flushed on an abnormal stop.) Pending file: `SENTINEL_ERR.nc`.
-2. **Controller run-state files** `[HYPOTHESIS]` — when a file runs, the controller writes to SYSDISK:
-   - `.file` (332 B, text) = path of last-loaded file, e.g. `/local/FAULT_TESTB.nc`. `[CONFIRMED]`
-   - `.<name>.nc.env` (888 B) = modal/run state as int32 LE. Diffing a faulted vs clean env, **int32
-     index 149 = 4 matched the on-screen error "l4"** → likely the **stop/error line number**; index
-     148 looks like a completion flag (1=ok, 0=didn't finish); idx 21 = file size, idx 23 = run
-     timestamp. **One confirming run pending** (run `SENTINEL_ERR.nc`, expect idx 149 = 5).
-   - `.<name>.nc.pos` (60 B) = axis positions (doubles). Not needed for error detection.
+### Detecting syntax errors over Ethernet — RESULTS (tested 2026-06-06)
+1. **Completion sentinel** `[CONFIRMED]` — write a start-marker near the top and a completion-sentinel
+   as the *last* line. A syntax error halts execution partway, so the sentinel never gets written.
+   PC reads uservar: start-marker set **+** sentinel absent = "started but didn't finish" = **error
+   caught**. Proven with `SENTINEL_ERR.nc` (ZZZZ on line 5): slot 101 = 7779 (started), slot 103 = 0
+   (sentinel never reached), `.env` idx 148 = 0 (didn't complete). Reliable. Add intermediate
+   checkpoint vars to localize roughly *where* it died.
+2. **Controller run-state files (SYSDISK), written on every run:**
+   - `.file` (332 B, text) = path of the last-loaded file (e.g. `/local/SENTINEL_ERR.nc`). `[CONFIRMED]`
+   - `.<name>.nc.env` (888 B) = modal/run state, int32 LE. Confirmed fields: idx 21 = file size,
+     idx 23 = run timestamp (Unix), **idx 148 = completion flag — 0 = aborted/errored, 1 = finished
+     clean** (0 on both error runs, 1 on a clean run; `[HYPOTHESIS, n=1 clean]`). This is a
+     controller-native "did it finish" signal needing **no** sentinel injection.
+   - **idx 149 is NOT the error line** `[REFUTED]` — it read **4 for an error on line 4 (FAULT_TESTB)
+     and also 4 for an error on line 5 (SENTINEL_ERR)**, so the first sample's "matches l4" was
+     coincidence. What idx 149 actually encodes is unknown `[TO TEST]`.
+   - `.<name>.nc.pos` (60 B) = axis positions. Not needed for error detection.
+
+**Bottom line:** syntax errors **are** detectable over Ethernet — use the **completion sentinel**
+(reliable) backed by the **`.env` idx 148 completion flag** and **`.file`** (which program ran).
+The exact error *line* is not yet available in software (idx 149 refuted; on-screen the controller
+*does* show "unrecognized file format: l<N>", so the info exists — just not located in a file yet).
 
 ## Serial
 - **No Modbus in V4.1 firmware** — checked the newest build (`ddcsv4(2025-04-04)`): 0 hits for
@@ -66,7 +76,9 @@
 - `assets/setting` — controller param file. `assets/ddcs4.1.JPG` — photo of the port/pinout.
 
 ## Open actions
-- [ ] Run `SENTINEL_ERR.nc` → confirm sentinel (slot 103 stays 0) **and** `.env` idx 149 = 5.
+- [x] ~~Run `SENTINEL_ERR.nc`~~ → **completion sentinel CONFIRMED** (2026-06-06); idx 149 ≠ error line.
+- [ ] Confirm `.env` idx 148 = 1 on a **clean** run (n=1 so far) → lock it as the completion flag.
+- [ ] Figure out what `.env` idx 149 actually encodes (read 4 for both line-4 and line-5 errors).
 - [ ] Run `FAULT_TESTB2.nc` (`#3000` alarm) → does `error.nc` fire on a real alarm? (slot 100 → 8888)
 - [ ] Find the system var holding the live **alarm code** (so a hook can log *which* error).
 - [ ] Recover M3K serial protocol from `ddcsv4.out` (skill experiment B1).
