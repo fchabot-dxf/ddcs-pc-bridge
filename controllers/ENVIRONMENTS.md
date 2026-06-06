@@ -38,7 +38,8 @@ verdict, not the IP.
 | PC (laptops) | **ASUS A15 TUF** (hostname `____`) and **Panasonic Toughbook** = hostname **`CNC-FAIRY`** | Toughbook `[CONFIRMED 2026-06-06]`, ASUS `[TO FILL]` |
 | Network | **direct PC↔controller Ethernet link (no router)** → static IPs both ends; PC may host a `share` ("Net Disk") | `[VERIFY]` |
 | CNC-FAIRY wired NIC | adapter name `Ethernet`, MAC `4C-36-4E-94-D4-10`; set static `192.168.0.100/24` here | `[2026-06-06: link DOWN — controller off/cable unseated]` |
-| Serial | SABRENT FTDI, COM `____`; **Modbus on port 2**, port 1 = M3K | `[VERIFY — adapter not yet plugged into CNC-FAIRY 2026-06-06]` |
+| Serial | SABRENT FTDI = **`COM6`** on CNC-FAIRY (FTDI VID:PID 0403:6001, SER BG01LT65A); opens 115200 8N1 ✅. **Modbus on port 2**, port 1 = M3K | `[COM confirmed 2026-06-06; DB9 wiring to port 2 + #279 enable still pending]` |
+| PC Modbus slave | `controllers/expert-m350/tools/modbus_slave.py` (pymodbus 3.13) — `python modbus_slave.py --port COM6 --baud 115200 --slave 1` | ready ✅ |
 | File access | test V4.1 SMB recipe vs Expert IP, and/or Net Disk | `[TO TEST]` |
 | Setup guide | `expert-m350/DDCS_Expert_BUILD_setup.md` | — |
 

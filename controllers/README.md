@@ -33,7 +33,7 @@ findings and assets separate so a fact proven on one is never silently assumed o
 | Home-all / startup-homing command | `G128 X1Y1Z1A1` or `M105`+`M106`+`M107`+`M108` `[CONFIRMED via manual]` | `M115` (firmware built-in) `[CONFIRMED]` |
 | Detect a syntax error over Ethernet (uservar sentinel + checkpoints) | ✅ `[CONFIRMED]` clean *and* error cases | `[TO TEST]` |
 | Run-state files `.file` / `.<f>.nc.env` / `.pos` on SYSDISK | ✅ `.file`=last file (useful); `.env` idx 148/149 do NOT track status `[REFUTED]` | `.<name>.nc.pos` (60 B) + `.break0/.break1` present `[CONFIRMED present 2026-06-06; semantics TO TEST]` |
-| Serial = **Modbus RTU** (`MSETDATA`/`MGETDATA`) | ❌ `[CONFIRMED]` not in firmware (checked 2 builds) | ✅ `[CONFIRMED on machine]` **`#279`=Modbus RTU enable**, **`#267`**=Serial-2 baud (B115200), `#296`/`#297`=Serial-2 parity/stop → **115200 8N1**; `#284`=Network boot mode (fw 2025-06-19-00) |
+| Serial = **Modbus RTU** (`MSETDATA`/`MGETDATA`) | ❌ `[CONFIRMED]` not in firmware (checked 2 builds) | ✅✅ **LIVE-CONFIRMED 2026-06-06**: `MSETDATA` frame received by PC slave (COM6↔port2). `#279`=enable, **115200 8N1**, slave id 1, X5=16→write-HOLDING, little-endian byte pack (`reg=#(n+1)<<8|#n`). pin `pymodbus==3.6.9` |
 | Serial port 1 = **M3K keyboard** | ✅ (listen test was silent — input port) | ✅ port 1 = M3K, port 2 = Modbus data |
 | `#2037` virtual buttons (press panel keys from macro) | `[TO TEST]` | ✅ `[CONFIRMED]` (per ddcs-expert skill) |
 | Passwords | Super Admin `888888` | Operator `666666` / Admin `777777` / Super Admin `888888` |

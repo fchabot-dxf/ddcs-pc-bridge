@@ -17,10 +17,23 @@ bench-proven. **Do not assume V4.1 findings carry over** — see [`../README.md`
 - Macros (run from G-code):
   - `MSETDATA[X1,X2,X3,X4,X5,X6]` — write controller vars #50–#499 → slave registers.
   - `MGETDATA[...]` — read slave registers → vars #50–#499.
-  - Args: X1=start var, X2=slave#, X3=start addr, X4=byte length (reg=2 bytes), X5=function/mode,
-    X6=var for exception code. Controller pauses ~16 s for a reply. Also `MBYTE2DATA`/`MDATA2BYTE`.
+  - Args: X1=start var, X2=slave#, X3=start **register address**, X4=length in **bytes** (reg=2 bytes),
+    **X5 = Modbus function code** (16=write-multiple per the MSETDATA example; 1=read in the MGETDATA
+    example), X6=var receiving the **exception code** (0=OK). Controller pauses ~16 s for a reply.
+  - ⭐ **Each var #50–#499 carries exactly ONE byte (decimal 0–255)** — `MSETDATA` byte-packs them
+    two-per-register. To move a value >255 (e.g. an error code), split/join with **`MDATA2BYTE`** /
+    **`MBYTE2DATA`** across consecutive vars. `[CONFIRMED via RU manual `Инструкция.txt` 2026-06-06]`
+  - Manual example: `#200=7 #201=8 #202=9 #203=10` → `MSETDATA[200,1,5,4,16,300]` (4 bytes → 2 regs @ addr 5).
   - Function codes: 01H coils, 02H discrete in, 03H holding, 04H input.
+  - **PC slave ready:** `tools/modbus_slave.py` (pymodbus 3.13) logs every frame + the hi/lo byte split of
+    each register; `tools/MODBUS_TEST.nc` is a motion-free push test. Run: `--port COM6 --baud 115200 --slave 1`.
 - Scope capture confirmed `MSETDATA[200,1,6,12,15,300]` transmits #200…#203 as Modbus frames. `[CONFIRMED via scope]`
+- ⭐⭐ **LIVE Modbus PC↔Expert CONFIRMED 2026-06-06** (CNC-FAIRY COM6 ↔ port 2, pymodbus 3.6.9 slave):
+  `MSETDATA[200,1,0,4,16,300]` with `#200..#203 = 11,22,33,44` arrived as **WRITE HOLDING addr=0 =
+  [5643, 11297]**. ⇒ confirmed: **115200 8N1, slave id 1; X5=16 → write-multiple HOLDING regs; X3 = register
+  address; byte packing is LITTLE-ENDIAN within a register (first var = LOW byte, next = high).** So reg =
+  `#(n+1)<<8 | #n`. The PC-slave readback channel is proven end-to-end. (pymodbus 3.13 broke the classic
+  datastore — **pin `pymodbus==3.6.9`**.)
 - **Homebrew architecture:** PC runs a **Modbus SLAVE**; the DDCS (master) pushes status vars (#200+,
   incl. error/exception) via `MSETDATA` and reads commands via `MGETDATA`. Bidirectional, documented.
 
