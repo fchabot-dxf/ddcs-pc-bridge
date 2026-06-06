@@ -25,6 +25,7 @@ findings and assets separate so a fact proven on one is never silently assumed o
 | `error.nc` = system-fault/alarm hook (NOT a syntax-error hook) | program errors don't fire it `[CONFIRMED]`; HW-alarm untested (no switches) | ✅ runs "when system abnormal working" `[CONFIRMED via docs]` |
 | `#3000` alarm command (`#3000=1(MSG,…)`) | ❌ `[CONFIRMED]` unsupported → "macro variable assignment error" | ✅ `[CONFIRMED via docs]` |
 | Boot-time auto-run hook | none confirmed; no `sysstart`; `advstart.nc` = Advanced-Start feature `[TO TEST]` | `sysstart.nc` boot-init `[CONFIRMED via docs]` |
+| Home-all / startup-homing command | `G128 X1Y1Z1A1` or `M105`+`M106`+`M107`+`M108` `[CONFIRMED via manual]` | `M115` (firmware built-in) `[CONFIRMED]` |
 | Detect a syntax error over Ethernet (uservar sentinel + checkpoints) | ✅ `[CONFIRMED]` clean *and* error cases | `[TO TEST]` |
 | Run-state files `.file` / `.<f>.nc.env` / `.pos` on SYSDISK | ✅ `.file`=last file (useful); `.env` idx 148/149 do NOT track status `[REFUTED]` | `[TO TEST]` |
 | Serial = **Modbus RTU** (`MSETDATA`/`MGETDATA`, `#279`/`#267`) | ❌ `[CONFIRMED]` not in firmware (checked 2 builds) | ✅ documented `[CONFIRMED via docs]`, params `[VERIFY ON MACHINE]` |

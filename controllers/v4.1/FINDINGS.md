@@ -78,6 +78,16 @@ sentinel + checkpoints** (proven clean *and* error cases), with **`.file`** iden
 The exact error *line* is not available in any file yet (the controller shows "unrecognized file
 format: l<N>" only on-screen); checkpoint granularity is the current substitute for localization.
 
+## Homing & the Expert `sysstart` equivalent
+- The Expert's `sysstart.nc` runs **`M115`** ("execute standard startup homing") + gantry sync
+  (`#883=#881`, `#1518=1`). **`M115` does NOT exist on the V4.1** `[CONFIRMED via V4.1 G/M-code manual]`.
+- **V4.1 homing commands** (official manual): `M105`=X home, `M106`=Y home, `M107`=Z home, `M108`=A
+  home (put on one line to home together); or **`G128 X1 Y1 Z1 A1`** = home all axes at once. Also
+  `G28`/`G30` = go to recorded origin via a reference point.
+- So the V4.1 translation of the Expert startup routine ≈ `G128 X1Y1Z1A1` (or `M105 M106 M107 M108`)
+  + gantry-sync writes — but the gantry-sync **variable numbers** (`#883`/`#881`/`#1518`) must be
+  re-verified on the V4.1 (variable maps differ between controllers). `[TO VERIFY]`
+
 ## Serial
 - **No Modbus in V4.1 firmware** — checked the newest build (`ddcsv4(2025-04-04)`): 0 hits for
   SETDATA/GETDATA/Modbus/MAX323; no serial/baud labels in its param files. `[CONFIRMED]`

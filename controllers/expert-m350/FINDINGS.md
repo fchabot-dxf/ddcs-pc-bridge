@@ -45,7 +45,10 @@ bench-proven. **Do not assume V4.1 findings carry over** — see [`../README.md`
 ## Macro hooks — official install-file description `[CONFIRMED via docs]`
 From the DDCS-Expert "install file description". These auto-run / are invoked by the firmware:
 - **`sysstart.nc`** — *"Boot initialization file — can modify it."* Auto-runs at **boot**. This is the
-  Expert's hands-free entry point (the dispatcher-bootstrap candidate). **Absent on V4.1.**
+  Expert's hands-free entry point (the dispatcher-bootstrap candidate). **Absent on V4.1.** On this
+  machine it contains: `M115` (built-in "standard startup homing") → `G04 P1.0` → gantry sync
+  `#883=#881` (A←Y) → `#1518=1` (mark A homed). `M115` is an Expert firmware built-in (no macro file
+  defines it); the **V4.1 has no `M115`** (use `G128 X1Y1Z1A1` / `M105-M108` there).
 - **`error.nc`** — *"When system abnormal working, system will execute this file."* A **system-fault /
   alarm** hook (NOT a G-code syntax-error hook — see V4.1 findings; program errors won't trigger it).
 - **`pause.nc`** (pause), **`key-1.nc`…`key-7.nc`** (K1–K7), **`ext_button.nc`** + **`extnc0/1/2-N.nc`**
