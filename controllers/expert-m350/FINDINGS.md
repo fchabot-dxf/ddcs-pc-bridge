@@ -121,10 +121,21 @@ O10047  #701=#701+1  #702=#702+1  #1506=47
    N1   #702=0  #1505=1(msg)  #1620=1(pause/feed-hold)  G04 P500
    N2
 ```
-⇒ **Need a different loop primitive on the Expert** for a PC-fed dispatcher — candidates: `M99` in the
-main program (loops to top, re-reading the file?) or `M98` self-recursion. **`[TO TEST]` which construct
-re-reads the file from disk each cycle here** (the property the dispatcher actually depends on). Do this
-test on the V4.1 first if possible; on the Expert it needs motion → E-stop.
+### "M99 loop?" — RESOLVED by static analysis 2026-06-06: the file-overwrite dispatcher does NOT port
+Question: is there an Expert construct that **re-reads the job file from disk each cycle** (the property the
+V4.1 `M47` self-loop dispatcher depends on, so a PC SMB-overwrite injects new code)? Answer: **no confirmed one.**
+- **DDCS loops = `IF/GOTO N<label>`** (CORE_TRUTH-confirmed) → these re-execute the **already-loaded** code
+  in RAM; a PC file-overwrite is invisible to a running looped program. Same for an `M99` main-loop.
+- **`M98 P<n>` resolves an `O<n>` label from the loaded libraries in RAM**, NOT a per-call disk read —
+  proven: `sysstart`'s `M98 P501` → `O501` lives in `slib-g.nc` (a boot-loaded library), and `O501` is the
+  per-axis homing/zero-search sub. So an `M98`-loop dispatcher also won't see overwrites (for library subs).
+- **No `slib-m.nc` M-code restarts/re-selects the program** (all are plain `M99`-terminated subs); `M47` is
+  the count/pause macro above, byte-identical in the factory backup.
+⇒ **Do NOT port the V4.1 file-overwrite/self-loop dispatcher to the Expert.** The only file-based path that
+re-reads disk is a **per-cycle Start trigger** (V4.1 confirms Start re-reads the file) — i.e. not zero-touch.
+**For true autonomy on the Expert, use the documented design instead:** `sysstart.nc` boot-bootstrap +
+**Modbus `MGETDATA`** (controller pulls commands from the PC slave — live inbound, no file hack) + SMB for
+job-file delivery + `uservar`/`MSETDATA`/`error.nc` for readback. (Modbus blocked on the ferrule.)
 
 ## Macro / param internals over SMB `[CONFIRMED 2026-06-06]`
 - **`setting` file = 1000×f64, index = param #** (8000 B). Decodes over SMB and matches the panel:
@@ -157,8 +168,10 @@ From `READ_VAR.nc`, `COPY_WCS.nc`, `SAVE_WCS_XY_AUTO.nc`, `sysstart.nc` on this 
 
 ## Autonomy outlook — the Expert is a superset of the V4.1
 The V4.1 bench proved a **software dispatcher**: an `M47` self-loop re-reads its file from disk each
-cycle, so the PC injects jobs by overwriting the loop file over SMB (one bootstrap Start needed). The
-Expert should do all that **and more** — likely **fully autonomous, zero added hardware**:
+cycle, so the PC injects jobs by overwriting the loop file over SMB (one bootstrap Start needed).
+**⚠️ That specific trick does NOT port — see "M99 loop? RESOLVED" above** (`M47` is redefined; `IF/GOTO`
+and `M98` loop in RAM, not from disk). The Expert reaches autonomy a **different, documented way** — and
+still with **zero added hardware**:
 - **Zero-touch bootstrap:** `sysstart.nc` auto-runs at boot → it can launch the `M47` dispatcher with
   no manual/External Start at all. `[CONFIRMED via docs that sysstart auto-runs; dispatcher TO TEST]`
 - **Second inbound channel:** Modbus **`MGETDATA`** (controller pulls commands from a PC slave) — a
