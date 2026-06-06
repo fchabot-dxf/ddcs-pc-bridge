@@ -4,3 +4,10 @@ desktop.ini
 .DS_Store
 *~
 *.tmp
+
+# Claude Code personal/local settings
+.claude/settings.local.json
+
+# Python bytecode
+__pycache__/
+*.pyc
