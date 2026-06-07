@@ -93,6 +93,7 @@ class Ops:
             "controller_id": found.get("id") if found else None,
             "controller_name": found.get("name") if found else None,
             "controller_connected": self.controller_reachable(),
+            "dest": self.cfg.expert_dest,            # which controller disk this gateway is pointed at
             "backend": self.cfg.backend,
             "version": __version__,
         }

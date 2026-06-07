@@ -56,15 +56,26 @@ export function makeClient(opts = {}) {
 
 // Connection status the UI renders (CONFIGS §6). For LocalClient a reachable gateway == "live".
 // (CloudClient will add the "mirror" / "offline" interpretations from the heartbeat later.)
+// Which device the gateway is pointed at: configured name, else the controller's own id-file name,
+// else the host from the CNCDISK UNC (\\host\share -> host), else "local".
+export function deviceName(d) {
+  if (!d) return "";
+  if (d.machine_name) return d.machine_name;
+  if (d.controller_name) return d.controller_name;
+  const m = (d.dest || "").match(/^\\\\([^\\]+)\\/);
+  if (m) return m[1];
+  return "local";
+}
+
 export function deriveStatus(client, descriptor) {
-  if (!descriptor) return { ok: false, dot: "bad", label: "gateway unreachable", descriptor: null };
-  const name = descriptor.machine_name || descriptor.controller_name || "gateway";
+  if (!descriptor) return { ok: false, dot: "bad", label: "unreachable", device: "", descriptor: null };
+  const device = deviceName(descriptor);
   if ("online" in descriptor) {   // cloud (mirror via heartbeat freshness)
     return descriptor.online
-      ? { ok: true, dot: "ok", label: `cloud · ${name}`, descriptor }
-      : { ok: true, dot: "warn", label: `gateway offline · ${name}`, descriptor };
+      ? { ok: true, dot: "ok", label: "cloud", device, descriptor }
+      : { ok: true, dot: "warn", label: "gateway offline", device, descriptor };
   }
   if (descriptor.controller_connected)   // local gateway, controller reachable
-    return { ok: true, dot: "ok", label: `live · ${name}`, descriptor };
-  return { ok: true, dot: "warn", label: "gateway up · controller offline", descriptor };
+    return { ok: true, dot: "ok", label: "live", device, descriptor };
+  return { ok: true, dot: "warn", label: "controller offline", device, descriptor };
 }

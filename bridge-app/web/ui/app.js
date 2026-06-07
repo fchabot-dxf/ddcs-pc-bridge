@@ -38,9 +38,11 @@ function refresh() { activate(active); }
 
 function renderConn() {
   clear(connEl);
+  const s = ctx.status || {};
   connEl.append(
-    el("span", { class: "dot " + (ctx.status?.dot || "bad") }),
-    el("span", { class: "conn-label" }, ctx.status?.label || "connecting…"),
+    el("span", { class: "dot " + (s.dot || "bad") }),
+    el("span", { class: "conn-label" }, s.label || "connecting…"),
+    s.device ? el("span", { class: "muted", title: s.descriptor?.dest || "" }, "· " + s.device) : null,
   );
 }
 
