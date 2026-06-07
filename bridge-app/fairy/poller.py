@@ -18,9 +18,16 @@ to a controller that's mid-cut.
 
 One tick = one iteration. bridge.py calls tick() on a timer.
 """
+import datetime
 import time
 
 from . import identity, tracker
+
+
+def _iso(ts):
+    if ts is None:
+        return None
+    return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class Poller:
@@ -68,21 +75,23 @@ class Poller:
             self.backend.put_status(
                 job_id, tracker.build_status(job_id, name, m, "failed", 0, events + [f"delivery failed: {e}"]))
             self.backend.delete_job(job_id)        # don't wedge the queue on a bad job
+            self._record_history(job_id, name, m, "failed", 0, None, None)
             return
         self.backend.delete_job(job_id)            # delivered -> bucket copy no longer needed (controller has it)
+        now = time.time()
         if not tracked:
             # deliver-only (probe / utility .nc): no beacons to watch; "delivered" is terminal
             self.backend.put_status(
                 job_id, tracker.build_status(job_id, name, m, "delivered", 0,
                                              events + [f"delivered (deliver-only) -> {dest}"]))
+            self._record_history(job_id, name, m, "delivered", 0, now, None)
             self.log(f"[poller] delivered (deliver-only) {name} ({job_id})")
             return
-        now = time.time()
         self.active = {
             "job_id": job_id, "name": name, "map": m,
             "total": m.get("total_beacons"),
             "last_beacon": 0, "events": events + [f"delivered -> {dest}"],
-            "last_progress_at": now,
+            "last_progress_at": now, "delivered_at": now, "started_at": None,
         }
         self.log(f"[poller] delivered {name} ({job_id}) -> awaiting Cycle Start + beacons")
         self._put("delivered")
@@ -103,6 +112,8 @@ class Poller:
         latest = self.beacons.latest()
         if latest is not None and latest[0] > a["last_beacon"]:
             n, ts = latest
+            if a["last_beacon"] == 0:
+                a["started_at"] = ts               # first beacon = the run actually started
             a["last_beacon"] = n
             a["last_progress_at"] = ts
             a["events"].append(f"beacon {n}/{a['total']}")
@@ -110,6 +121,7 @@ class Poller:
             if self._is_complete(a, n):
                 a["events"].append("done")
                 self._put("done")                  # inbox copy already deleted at delivery
+                self._record_history(a["job_id"], a["name"], a["map"], "done", a["last_beacon"], a["delivered_at"], a["started_at"])
                 self.log(f"[poller] {a['name']}: DONE")
                 self.active = None
             else:
@@ -121,6 +133,7 @@ class Poller:
             where = f"after beacon {a['last_beacon']}" if a["last_beacon"] else "after delivery (no Start?)"
             a["events"].append(f"stalled {where}")
             self._put("stalled")                   # inbox copy already deleted at delivery
+            self._record_history(a["job_id"], a["name"], a["map"], "stalled", a["last_beacon"], a["delivered_at"], a["started_at"])
             self.log(f"[poller] {a['name']}: STALLED {where}")
             self.active = None
 
@@ -137,3 +150,19 @@ class Poller:
             a["job_id"],
             tracker.build_status(a["job_id"], a["name"], a["map"], state, a["last_beacon"], a["events"]),
         )
+
+    def _record_history(self, job_id, name, m, final_state, last_beacon, delivered_at, started_at):
+        """Append a durable finished-job record (name, final state, run duration). History seam —
+        consumed by the console History view and any later metrics."""
+        ended = time.time()
+        rec = {
+            "jobId": job_id, "name": name, "final_state": final_state,
+            "total_beacons": m.get("total_beacons"), "last_beacon": last_beacon,
+            "delivered_at": _iso(delivered_at), "started_at": _iso(started_at), "ended_at": _iso(ended),
+            "duration_s": round(ended - started_at) if started_at else None,
+            "recorded_at": _iso(ended),
+        }
+        try:
+            self.backend.append_history(rec)
+        except Exception as e:
+            self.log(f"[poller] history record failed for {job_id}: {e}")

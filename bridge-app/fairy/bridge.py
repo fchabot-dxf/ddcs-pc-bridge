@@ -188,6 +188,10 @@ def self_test():
     st = status(backend, job_id)
     check(st["state"] == "done" and st["percent"] == 100.0, "complete beacon -> done @ 100%")
     check(poller.active is None, "done -> slot freed")
+    hist = backend.list_history()
+    check(len(hist) == 1 and hist[0]["final_state"] == "done" and hist[0]["name"] == "demo_bracket.nc",
+          "history records finished job (name + final state)")
+    check("duration_s" in hist[0] and hist[0]["started_at"], "history record has duration_s + started_at")
 
     # nothing left to claim (job was deleted from inbox at delivery)
     poller.tick()
@@ -203,6 +207,8 @@ def self_test():
     check(st["state"] == "delivered" and poller.active is None, "no map -> delivered, slot stays free (untracked)")
     check(os.path.exists(os.path.join(root, "cncdisk", "probe_z.nc")), "deliver-only name derived from jobId")
     check(probe_id not in backend.list_inbox(), "deliver-only deleted from inbox (controller retains it)")
+    check(any(h["jobId"] == probe_id and h["final_state"] == "delivered" for h in backend.list_history()),
+          "deliver-only recorded in history")
     poller.tick()
     check(poller.active is None, "deliver-only job not re-claimed")
 

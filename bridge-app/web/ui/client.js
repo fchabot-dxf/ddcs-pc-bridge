@@ -32,6 +32,7 @@ export function makeClient(opts = {}) {
     mode: base ? "remote" : "local",
     descriptor: () => call("/api/descriptor"),
     listQueue: () => call("/api/queue"),
+    listHistory: (limit = 100) => call("/api/history?limit=" + limit),
     getStatus: (id) => call("/api/status?id=" + encodeURIComponent(id)),
     listFiles: () => call("/api/files"),
     readFile: (name) => call("/api/file?name=" + encodeURIComponent(name)),

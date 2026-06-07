@@ -103,7 +103,7 @@ post progress to R2.** Outbound-only; never internet-reachable.
 | **Identity** | `fairy/identity.py` | Machine identity on the controller's disk: provision `.bridge-machine.json`; verify-before-deliver (CONFIGS §7). Touches the controller. |
 | **Ops** | `fairy/ops.py` | The **API-first operations surface** (`submit_job`, `list_queue`, `get_status`, `list_files`, `read_file`, `delete_file`, `descriptor`). One definition reused by the local server + future MCP/embeds. |
 | **Local server** | `fairy/server.py` | Stdlib HTTP server exposing Ops as JSON + serving the console at `/` — how the gateway serves the console offline/on the LAN (CONFIGS §3). |
-| **Backend** | `fairy/backend/` | The transport seam (interface). `local_folder.py` (test), `r2.py` (prod). `list_inbox`/`put_job`/`get_job`/`put_status`/`get_status`/`list_statuses`/`delete_job`/`put_cncdisk_index`/`list_commands`/`clear_command`/`put_heartbeat`. |
+| **Backend** | `fairy/backend/` | The transport seam (interface). `local_folder.py` (test), `r2.py` (prod). `list_inbox`/`put_job`/`get_job`/`put_status`/`get_status`/`list_statuses`/`delete_job`/`put_cncdisk_index`/`list_commands`/`clear_command`/`put_heartbeat`/`append_history`/`list_history`. |
 | **Local UI** *(optional)* | `fairy/localui/` | *(superseded by `server.py` serving the console — kept as a label for the zero-lag local view)* |
 
 ### Module detail
@@ -161,7 +161,7 @@ bridge-app/
     PROTOCOL.md              ← the contract (web ⇄ fairy)
   web/                       ── APP 1: the Console (Cloudflare or gateway-served; runs anywhere) ──
     ui/        index.html · styles.css · app.js (shell+view registry) · client.js (transport seam) ·
-               util.js · views/{submit,queue,files,admin}.js   [built; offline end-to-end verified]
+               util.js · views/{submit,queue,files,history,admin}.js   [built; offline end-to-end verified]
     instrument/ instrument.js · gcode-parse.js          (beacon insertion, browser — Phase 4)
     worker/    api.js · auth.js                          (authed R2 API — Phase 3)
     wrangler.toml

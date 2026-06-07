@@ -78,6 +78,12 @@ class _Handler(BaseHTTPRequestHandler):
             return self._send_json(self.ops.descriptor())
         if path == "/api/queue":
             return self._send_json(self.ops.list_queue())
+        if path == "/api/history":
+            try:
+                limit = int((q.get("limit") or ["100"])[0])
+            except ValueError:
+                limit = 100
+            return self._send_json(self.ops.list_history(limit))
         if path == "/api/status":
             st = self.ops.get_status((q.get("id") or [""])[0])
             return self._send_json(st, 200) if st else self._send_json({"error": "no such job"}, 404)

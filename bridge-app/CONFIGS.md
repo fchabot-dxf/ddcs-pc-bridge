@@ -101,7 +101,8 @@ caller) · **view registry** (views are pluggable) · **shared modules** (parser
 | Multi-user | tenant prefix in Backend + auth at the API | `tenant` param (default ""), API is the auth point |
 | **Jog (local motion)** | separate **local-only**, low-latency, **E-stopped** channel — **never** the cloud/observe path | gateway capabilities kept modular; boundary respected |
 | Other CNC controllers | a Controller adapter interface | `transfer`/`slave` already isolated |
-| Notifications / history | events on status transitions | a subscriber consumes |
+| **History** (finished jobs + durations) | `history/<jobId>.json` + `list_history` op + History view | ✅ **built** — gateway records every terminal job (name, final state, duration) |
+| Notifications | events on status transitions | a subscriber consumes (future) |
 | Lint / parse-check | a `lint(gcode)` op | API-first |
 
 **Convergence note (compatibility target, NOT built here):** DDCS Studio is a sibling app (vanilla ES6 modules,

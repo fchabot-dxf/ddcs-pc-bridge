@@ -51,6 +51,10 @@ class Ops:
     def get_status(self, job_id):
         return self.backend.get_status(job_id)
 
+    def list_history(self, limit=100):
+        """Finished-job history: name, final state, duration (History view seam)."""
+        return self.backend.list_history(limit)
+
     # --- CNCDISK files ------------------------------------------------------
     def list_files(self):
         return cncdisk.build_index(self.cfg.expert_dest)

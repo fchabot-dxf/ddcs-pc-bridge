@@ -6,10 +6,11 @@ import { el, clear } from "./util.js";
 import submitView from "./views/submit.js";
 import queueView from "./views/queue.js";
 import filesView from "./views/files.js";
+import historyView from "./views/history.js";
 import adminView from "./views/admin.js";
 
 const client = makeClient();                       // LocalClient (same-origin); CloudClient/DirectClient later
-const VIEWS = [submitView, queueView, filesView, adminView];
+const VIEWS = [submitView, queueView, filesView, historyView, adminView];
 
 const root = document.getElementById("view");
 const tabsEl = document.getElementById("tabs");

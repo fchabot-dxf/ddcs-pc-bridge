@@ -45,6 +45,15 @@ class Backend(ABC):
     def put_heartbeat(self, obj: dict) -> None:
         """Write gateway/heartbeat.json — liveness + descriptor for the cloud console (CONFIGS §6)."""
 
+    # --- history (durable finished-job log: name, final state, duration) -------------------
+    @abstractmethod
+    def append_history(self, record: dict) -> None:
+        """Append a finished-job record to history/<jobId>.json (seam for the History view)."""
+
+    @abstractmethod
+    def list_history(self, limit: int = 100) -> list:
+        """Return recent history records, newest first (up to limit)."""
+
     @abstractmethod
     def delete_job(self, job_id: str) -> None:
         """Delete inbox/<jobId>.{nc,map.json} after delivery (every job — no retention; the file

@@ -14,7 +14,8 @@ class LocalFolderBackend(Backend):
         self.status = os.path.join(root, "status")
         self.cncdisk = os.path.join(root, "cncdisk")     # published listing lives here
         self.commands = os.path.join(root, "commands")
-        for d in (self.inbox, self.status, self.cncdisk, self.commands):
+        self.history = os.path.join(root, "history")
+        for d in (self.inbox, self.status, self.cncdisk, self.commands, self.history):
             os.makedirs(d, exist_ok=True)
 
     def list_inbox(self):
@@ -70,6 +71,20 @@ class LocalFolderBackend(Backend):
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(obj, f, indent=2)
         os.replace(tmp, path)
+
+    def append_history(self, record):
+        path = os.path.join(self.history, record["jobId"] + ".json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(record, f, indent=2)
+
+    def list_history(self, limit=100):
+        out = []
+        for fn in sorted(os.listdir(self.history), reverse=True):
+            if fn.endswith(".json"):
+                with open(os.path.join(self.history, fn), encoding="utf-8") as f:
+                    out.append(json.load(f))
+        out.sort(key=lambda r: r.get("recorded_at", ""), reverse=True)
+        return out[:limit]
 
     def delete_job(self, job_id):
         for ext in (".nc", ".map.json"):
