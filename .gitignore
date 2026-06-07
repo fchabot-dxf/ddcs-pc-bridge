@@ -18,3 +18,8 @@ _bridge_data/
 # Cloudflare wrangler local state (pages dev / deploy)
 .wrangler/
 node_modules/
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
