@@ -37,7 +37,9 @@ def build(config, beacons=None):
     backend = make_backend(config)
     transfer = Transfer(config.expert_dest)
     if beacons is None:
-        beacons = ModbusBeaconSource(config.com_port, config.baud, config.slave_id)
+        # SimBeaconSource needs no pymodbus/serial — lets the gateway run for UI/SMB-only (--no-slave).
+        beacons = (ModbusBeaconSource(config.com_port, config.baud, config.slave_id)
+                   if config.enable_slave else SimBeaconSource())
     poller = Poller(backend, transfer, beacons, config)
     return backend, transfer, beacons, poller
 
@@ -57,8 +59,8 @@ def run_loop(config):
         print(f"[bridge] serving console + API at http://{config.host}:{config.port}")
 
     machine = config.machine_name or config.machine_id or "(unconfigured)"
-    print(f"[bridge] up — backend={config.backend}  machine={machine}  dest={config.expert_dest}  "
-          f"slave={config.com_port}@{config.baud}")
+    slave = f"{config.com_port}@{config.baud}" if config.enable_slave else "off (--no-slave)"
+    print(f"[bridge] up — backend={config.backend}  machine={machine}  dest={config.expert_dest}  slave={slave}")
     print("[bridge] polling… (Ctrl+C to stop)")
     last_hb = time.time()
     try:
@@ -437,6 +439,7 @@ def main(argv):
     ap.add_argument("--port", dest="com_port", help="serial COM port for the Modbus slave (e.g. COM6)")
     ap.add_argument("--baud", type=int)
     ap.add_argument("--slave", dest="slave_id", type=int)
+    ap.add_argument("--no-slave", action="store_true", help="don't start the Modbus slave (UI/SMB-only; no serial hardware or pymodbus)")
     ap.add_argument("--stall", dest="stall_seconds", type=float)
     ap.add_argument("--poll", dest="poll_interval_s", type=float)
     ap.add_argument("--serve", action="store_true", help="serve the console + ops API locally")
@@ -453,6 +456,7 @@ def main(argv):
         stall_seconds=args.stall_seconds, poll_interval_s=args.poll_interval_s,
         serve=args.serve or None, host=args.host, port=args.port, console_dir=args.console_dir,
         machine_id=args.machine_id, machine_name=args.machine_name,
+        enable_slave=(False if args.no_slave else None),
     )
     if args.provision:
         return provision(cfg, args.machine_id, args.machine_name)

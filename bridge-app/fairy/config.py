@@ -27,6 +27,7 @@ class Config:
     com_port: str = "COM6"                  # SABRENT FTDI on CNC-FAIRY
     baud: int = 115200
     slave_id: int = 1
+    enable_slave: bool = True               # False (--no-slave): skip the Modbus slave (UI/SMB-only; no serial/pymodbus)
 
     # --- loop / timing ----------------------------------------------------
     poll_interval_s: float = 5.0            # while idle (no active job)
