@@ -56,7 +56,14 @@ def run_loop(config):
     if config.serve:
         from .server import start_server
         server = start_server(config, ops)
-        print(f"[bridge] serving console + API at http://{config.host}:{config.port}")
+        url = f"http://{config.host}:{config.port}"
+        print(f"[bridge] serving console + API at {url}")
+        if config.open_browser:
+            try:
+                import webbrowser
+                webbrowser.open(url)
+            except Exception:
+                pass
 
     machine = config.machine_name or config.machine_id or "(unconfigured)"
     slave = f"{config.com_port}@{config.baud}" if config.enable_slave else "off (--no-slave)"
@@ -440,6 +447,7 @@ def main(argv):
     ap.add_argument("--baud", type=int)
     ap.add_argument("--slave", dest="slave_id", type=int)
     ap.add_argument("--no-slave", action="store_true", help="don't start the Modbus slave (UI/SMB-only; no serial hardware or pymodbus)")
+    ap.add_argument("--open", dest="open_browser", action="store_true", help="open the console in the default browser on start")
     ap.add_argument("--stall", dest="stall_seconds", type=float)
     ap.add_argument("--poll", dest="poll_interval_s", type=float)
     ap.add_argument("--serve", action="store_true", help="serve the console + ops API locally")
@@ -457,6 +465,7 @@ def main(argv):
         serve=args.serve or None, host=args.host, port=args.port, console_dir=args.console_dir,
         machine_id=args.machine_id, machine_name=args.machine_name,
         enable_slave=(False if args.no_slave else None),
+        open_browser=(True if args.open_browser else None),
     )
     if args.provision:
         return provision(cfg, args.machine_id, args.machine_name)

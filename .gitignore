@@ -11,3 +11,6 @@ desktop.ini
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Gateway local runtime data (created by START_GATEWAY.bat / the local backend)
+_bridge_data/
