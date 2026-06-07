@@ -15,8 +15,8 @@ web/
     client.js               the transport SEAM (LocalClient; ?api= override; Cloud/Direct later)
     util.js                 tiny DOM helpers (el/clear/toast)
     views/                  submit.js · queue.js · files.js · history.js · admin.js
+    instrument/             gcode-parse.js + instrument.js (JS port of checkpoint_insert.py) · selftest.mjs
   worker/                   (Phase 3) authed R2 API — so the browser never holds R2 keys
-  instrument/               (Phase 4) JS port of checkpoint_insert.py (beacons)
 ```
 
 ## Run / view

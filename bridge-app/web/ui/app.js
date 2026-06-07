@@ -24,9 +24,15 @@ VIEWS.forEach((v) => tabsEl.append(el("div", { class: "tab", onclick: () => acti
 function activate(view) {
   active = view;
   [...tabsEl.children].forEach((t, i) => t.classList.toggle("on", VIEWS[i] === view));
+  if (location.hash.slice(1) !== view.id) history.replaceState(null, "", "#" + view.id);
   clear(root);
   view.mount(ctx);
 }
+
+window.addEventListener("hashchange", () => {
+  const v = VIEWS.find((x) => x.id === location.hash.slice(1));
+  if (v && v !== active) activate(v);
+});
 
 function refresh() { activate(active); }
 
@@ -48,6 +54,6 @@ async function poll() {
 
 function clock() { document.getElementById("clock").textContent = new Date().toLocaleTimeString(); }
 
-activate(queueView);
+activate(VIEWS.find((v) => v.id === location.hash.slice(1)) || queueView);
 poll(); setInterval(poll, 1500);
 clock(); setInterval(clock, 1000);

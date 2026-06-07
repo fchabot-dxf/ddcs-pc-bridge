@@ -161,8 +161,8 @@ bridge-app/
     PROTOCOL.md              ← the contract (web ⇄ fairy)
   web/                       ── APP 1: the Console (Cloudflare or gateway-served; runs anywhere) ──
     ui/        index.html · styles.css · app.js (shell+view registry) · client.js (transport seam) ·
-               util.js · views/{submit,queue,files,history,admin}.js   [built; offline end-to-end verified]
-    instrument/ instrument.js · gcode-parse.js          (beacon insertion, browser — Phase 4)
+               util.js · views/{submit,queue,files,history,admin}.js ·
+               instrument/{gcode-parse,instrument}.js + selftest.mjs   [built; verified, JS↔Py parity]
     worker/    api.js · auth.js                          (authed R2 API — Phase 3)
     wrangler.toml
   fairy/                     ── APP 2 (CNC-FAIRY; the wired PC) ──

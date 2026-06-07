@@ -39,7 +39,7 @@ explorer proven live on the V4.1 (2026-06-07).**
   Run **`--r2-check`** live (needs the S3 token).
 - **Verify:** console-on-Pages → R2 → Gateway picks up → status back → bar moves; Gateway-offline shows "queued."
 
-## Phase 4 — JS instrumenter + beacon settings
+## Phase 4 — JS instrumenter + beacon settings — ✅ DONE
 - **Goal:** Submit turns a raw `.nc` into a tracked job in the browser.
 - **Build:** port `checkpoint_insert.py` → `gcode-parse.js` + `instrument.js` (**self-test parity** with Python);
   **beacon toggle** (on→tracked / off→deliver-only) + settings (**count · pacing · var/marker**).
