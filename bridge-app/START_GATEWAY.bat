@@ -11,7 +11,7 @@ REM ============================================================
 cd /d "%~dp0"
 echo Starting the DDCS Bridge gateway...  (close this window to stop)
 echo.
-python -m fairy.bridge run --serve --open --no-slave --console web/ui --backend local --root _bridge_data --dest _bridge_data\cncdisk
+python -m fairy.bridge run --serve --open --no-slave --console web/ui --backend local --root _bridge_data --dest _bridge_data\controller
 echo.
 echo Gateway stopped. Press any key to close.
 pause >nul

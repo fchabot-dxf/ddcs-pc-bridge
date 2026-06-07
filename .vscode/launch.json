@@ -7,7 +7,7 @@
       "request": "launch",
       "module": "fairy.bridge",
       "args": ["run", "--serve", "--open", "--no-slave", "--console", "web/ui",
-               "--backend", "local", "--root", "_bridge_data", "--dest", "_bridge_data/cncdisk"],
+               "--backend", "local", "--root", "_bridge_data", "--dest", "_bridge_data/controller"],
       "cwd": "${workspaceFolder}/bridge-app",
       "console": "integratedTerminal",
       "justMyCode": true
