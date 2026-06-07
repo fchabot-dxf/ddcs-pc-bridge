@@ -1,0 +1,35 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "DDCS Gateway — serve (no hardware)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fairy.bridge",
+      "args": ["run", "--serve", "--open", "--no-slave", "--console", "web/ui",
+               "--backend", "local", "--root", "_bridge_data", "--dest", "_bridge_data/cncdisk"],
+      "cwd": "${workspaceFolder}/bridge-app",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "DDCS Gateway — real rig (Modbus + SMB)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fairy.bridge",
+      "args": ["run", "--serve", "--open", "--console", "web/ui",
+               "--dest", "\\\\192.168.0.99\\CNCDISK", "--port", "COM6"],
+      "cwd": "${workspaceFolder}/bridge-app",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "DDCS Gateway — self-test",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fairy.bridge",
+      "args": ["--self-test"],
+      "cwd": "${workspaceFolder}/bridge-app",
+      "console": "integratedTerminal"
+    }
+  ]
+}
