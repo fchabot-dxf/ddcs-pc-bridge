@@ -25,7 +25,7 @@ explorer proven live on the V4.1 (2026-06-07).**
 - **Verify:** curl the local API; identity mismatch refuses delivery (live on V4.1); heartbeat written.
 - **Seam:** this API = the future **MCP / embeddable** surface.
 
-## Phase 2 — Console (offline end-to-end)  ⭐ first usable product
+## Phase 2 — Console (offline end-to-end)  ⭐ first usable product — ✅ DONE
 - **Goal:** browser at the Gateway's `localhost` → full submit / track / files / admin, no cloud.
 - **Build:** vanilla **ES6 modules + manager classes**; **view registry**; **client seam** (`LocalClient` first);
   views **Submit · Queue/Tracker · Files · Admin**; **connection-status-aware** UI (live/mirror/offline);
@@ -47,8 +47,20 @@ explorer proven live on the V4.1 (2026-06-07).**
 
 ## Phase 5 — Packaging / distribution
 - **Goal:** download one exe from the page → run → offline system.
-- **Build:** **PyInstaller** single exe (Gateway + embedded console); **Download** button on the page →
-  exe hosted on **R2**.
+- **Decision to make here — native shell:** spike **Tauri vs Pywebview** and pick by feel/deploy.
+  - **Pywebview** (recommended to evaluate first): stays in the **Python** ecosystem — wrap the Python
+    gateway + the vanilla ES6 console into one window/`.exe` with **no Rust context-switch**. Likely the
+    fastest path given the gateway is already Python.
+  - **Tauri**: tiny binary, OS WebView2, auto-update — but a third ecosystem (Rust) just to render a window.
+  - Either way it's just a wrapper around the **same Python gateway + same HTML console** — the current
+    architecture (local Python HTTP server ↔ vanilla browser UI) keeps **both paths viable**, so this stays
+    a late, low-cost decision.
+- **Build:** **PyInstaller** single exe (Gateway + embedded console) and/or the chosen native shell;
+  **Download** button on the page → exe hosted on **R2**.
+- **Gateway lifecycle (decided 2026-06-07):** the gateway is **not** started from the web console (it
+  *serves* the console; the cloud console can't reach it by design). Start = the exe + **Task Scheduler
+  auto-start (boot + resume-from-sleep)** + a future **tray launcher** (start/stop). Small touches:
+  **auto-open the browser on `--serve`**, and optional **Admin restart/stop** (local mode only).
 - **Verify:** run the exe on a clean profile → localhost console works. (Code-signing / SmartScreen = later.)
 
 ## Phase 6 — Live on the Expert

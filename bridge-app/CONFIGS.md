@@ -43,7 +43,7 @@ Same HTML/CSS/JS, different wrapper:
 |---|---|---|
 | **Browser / Cloudflare Pages** | cloud only | zero-install, always-current, phone-friendly. Fewer configs **by nature** (browser security) — a feature, not a gap. |
 | **Gateway-served (localhost)** | offline / local | the Gateway hosts the same console; how offline works without any native shell |
-| **Native app (Tauri)** *(deferred)* | offline / local / direct / cloud | a single `.exe`; no browser limits (can hit LAN HTTP); can **bundle the Gateway**; **role self-detects** (gateway mode if on the controller link, else console-only) |
+| **Native app** *(deferred — Phase 5 decision)* | offline / local / direct / cloud | a single `.exe`; no browser limits (can hit LAN HTTP); can **bundle the Gateway**; **role self-detects** (gateway mode if on the controller link, else console-only). Shell candidates: **Pywebview** (stays in Python — likely first choice) vs **Tauri** (tiny binary, but adds Rust). Decide via a quick spike at Phase 5; the current Python-HTTP-server ↔ vanilla-HTML arch keeps both viable. |
 
 Tauri is a **build tool**, not a platform — it compiles the HTML console into one standalone `.exe`; the user just downloads + runs it (no "Tauri" to install; uses the OS WebView2).
 

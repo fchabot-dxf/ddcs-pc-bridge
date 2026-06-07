@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DDCS Bridge — Console</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="app-header">
+    <div class="hdr-title"><span class="hdr-icon">◆</span><span class="hdr-text">DDCS BRIDGE</span></div>
+    <div class="hdr-controls">
+      <span id="conn" class="conn"><span class="dot"></span><span class="conn-label">connecting…</span></span>
+      <span class="muted mono" id="clock">--:--:--</span>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="view"></div>
+</div>
+<!-- vanilla ES6 modules, no framework, no CDN — runs in a browser, served by the gateway, or in a Tauri shell -->
+<script type="module" src="app.js"></script>
+</body>
+</html>

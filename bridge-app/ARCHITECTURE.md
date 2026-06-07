@@ -159,10 +159,11 @@ bridge-app/
   README.md                  ← overview
   shared/
     PROTOCOL.md              ← the contract (web ⇄ fairy)
-  web/                       ── APP 1 (Cloudflare; runs anywhere) ──
-    ui/        index.html · submit.js · queue.js · tracker.js · styles.css
-    instrument/ instrument.js · gcode-parse.js          (beacon insertion, browser)
-    worker/    api.js · auth.js                          (authed R2 API)
+  web/                       ── APP 1: the Console (Cloudflare or gateway-served; runs anywhere) ──
+    ui/        index.html · styles.css · app.js (shell+view registry) · client.js (transport seam) ·
+               util.js · views/{submit,queue,files,admin}.js   [built; offline end-to-end verified]
+    instrument/ instrument.js · gcode-parse.js          (beacon insertion, browser — Phase 4)
+    worker/    api.js · auth.js                          (authed R2 API — Phase 3)
     wrangler.toml
   fairy/                     ── APP 2 (CNC-FAIRY; the wired PC) ──
     bridge.py                  entry / service loop
