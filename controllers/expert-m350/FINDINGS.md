@@ -224,9 +224,13 @@ From the DDCS-Expert "install file description". These auto-run / are invoked by
 
 ## ⭐ Run-state / alarm system variables — the readback backbone `[CONFIRMED via variable-map xlsx 2026-06-06]`
 From `DDCS_Variables_mapping_2025-01-04.xlsx` (skill), cross-checked against `slib-m.nc`/`slib-g.nc`:
-- **`#1630`–`#1636` = Analyze channel 1–7 STATUS: `-1` Idle / `0` Working / `1` Pause.** ⭐ This is the live
-  run-state of the program executor. A watchdog macro (in a *different* channel) reads `#1630` and
-  `MSETDATA`s it to the PC → the PC knows running / paused / stopped without watching the screen.
+- **`#1630`–`#1636` = Analyze channel 1–7 STATUS: `-1` Idle / `0` Working / `1` Pause** (the executor's
+  run-state). **⚠️⚠️ DANGER: reading `#1630` from inside a running program WEDGES the analyzer** — froze
+  "analysis" hard, Reset would not clear, **required a reboot** (observed 2026-06-06, `PUSH_RUNSTATE.nc`
+  froze *before* its MSETDATA — slave got nothing). DO NOT read `#16xx` analyze-channel internals from a
+  normal job. Reading one's *own* channel status is self-referential and locks the parser. A cross-channel
+  watchdog *might* read another channel's status, but that's unproven and risky — **do not blind-test it
+  live** (each wedge = a reboot). Treat `#1630` as write-only-by-firmware for now.
 - **`#1620`–`#1626` = Analyze channel 1–7 EXECUTION method:** `0`=Start/Restart, `1`=Internal Pause,
   `2`=External Pause. Writing these *commands* a channel. ⇒ corrects the earlier note: `M47` (`O10047`)
   does `#1620=1` = "request internal pause on channel 1" (not a generic feed-hold flag).
@@ -242,6 +246,20 @@ From `DDCS_Variables_mapping_2025-01-04.xlsx` (skill), cross-checked against `sl
   remotely readable; detect via run-state (`#1630`) + checkpoint sentinels + `.pos` (did-it-run) instead.
 - **`.<name>.nc.pos`** is created/updated only when a program actually RUNS (errored-at-parse programs
   leave none) → a pollable "did it execute" flag over SMB. `[CONFIRMED 2026-06-06]`
+
+### ✅ The SAFE readback pattern (proven, no wedge) — use this, not system-var reads
+`MODBUS_TEST.nc` proved that a program setting **ordinary user vars to known values** and `MSETDATA`-ing
+them transmits reliably and never wedges. So the readback design is **checkpoint sentinels**, NOT reading
+executor internals:
+- The PC-pushed job sets `#250 = <checkpoint id>` then `MSETDATA[250,1,0,2,16,300]` at safe points
+  (after header, after each phase, just before `M30`). The PC slave sees how far it got — last checkpoint
+  received = last line reached before any stop/error. No system-var reads → no wedge.
+- A **syntax error** means the job never runs → zero checkpoints arrive AND no `.pos` is written → PC
+  infers "failed to parse." (Exact line still only on the System Log screen.)
+- **Hardware/system alarms:** route through **`error.nc`** (fires on "system abnormal") — have it set a
+  user var and `MSETDATA` it. `[TO TEST carefully — error.nc content + whether MSETDATA is safe there]`
+- Reading plain I/O/alarm vars like `#1000` may or may not be safe — **untested in isolation** (the
+  PUSH_RUNSTATE wedge read `#1630` first, so we can't blame `#1000` yet). Don't blind-test live.
 
 ## Error-readback options (ranked)
 1. **Serial Modbus (best):** a `sysstart`/dispatcher macro periodically `MSETDATA`s the alarm/status
