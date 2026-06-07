@@ -21,12 +21,29 @@ class Backend(ABC):
         """Return jobIds in inbox/, sorted ascending (== FIFO creation order)."""
 
     @abstractmethod
+    def put_job(self, job_id: str, nc_bytes, mapping=None) -> None:
+        """Write inbox/<jobId>.nc (+ .map.json if mapping given). The inbound side of the queue —
+        used by the local-server ops layer (in cloud mode the web Worker does this instead)."""
+
+    @abstractmethod
     def get_job(self, job_id: str):
         """Return (nc_bytes, map_dict) for a jobId. map_dict is {} if no map present."""
 
     @abstractmethod
     def put_status(self, job_id: str, status: dict) -> None:
         """Write status/<jobId>.json (PROTOCOL §5)."""
+
+    @abstractmethod
+    def get_status(self, job_id: str):
+        """Return status/<jobId>.json as a dict, or None if absent."""
+
+    @abstractmethod
+    def list_statuses(self) -> list:
+        """Return all status objects (for the queue/tracker view), sorted by jobId."""
+
+    @abstractmethod
+    def put_heartbeat(self, obj: dict) -> None:
+        """Write gateway/heartbeat.json — liveness + descriptor for the cloud console (CONFIGS §6)."""
 
     @abstractmethod
     def delete_job(self, job_id: str) -> None:

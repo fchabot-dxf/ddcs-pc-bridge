@@ -55,6 +55,7 @@ number becomes percent / op / line / ETA:
 | `inbox/<jobId>.nc` | web | fairy | job waiting to be delivered (the **queue**) |
 | `inbox/<jobId>.map.json` | web | fairy | its map — **only for TRACKED jobs** (see job types) |
 | `status/<jobId>.json` | fairy | web | live progress (see §5) |
+| `gateway/heartbeat.json` | fairy | web | gateway liveness + descriptor (`machine_id`, `name`, `last_seen`, `active_job`) — so the cloud console knows if the gateway is awake (CONFIGS §6) |
 
 - **`jobId`** is **lexicographically sortable** = creation order, e.g. `20260606T143207-bracket_v3`.
   The queue is "`LIST inbox/` sorted ascending" → strict FIFO.

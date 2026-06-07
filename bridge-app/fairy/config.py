@@ -34,6 +34,18 @@ class Config:
     stall_seconds: float = 120.0            # no new beacon this long -> "stalled"
 
     cncdisk_refresh_s: float = 15.0         # how often to republish the CNCDISK file listing
+    heartbeat_s: float = 20.0               # how often to publish the gateway heartbeat
+
+    # --- machine identity (which controller this gateway serves; CONFIGS §7) -------
+    machine_id: str = ""                    # expected controller id; empty = unconfigured (verify skipped)
+    machine_name: str = ""                  # human label, e.g. "Ultimate Bee"
+    identity_filename: str = ".bridge-machine.json"   # written on the controller's disk
+
+    # --- local server (offline / local configs: serve the console + ops API) ------
+    serve: bool = False                     # run the local HTTP server (server.py)
+    host: str = "127.0.0.1"                 # bind address (0.0.0.0 to reach from the LAN)
+    port: int = 8765
+    console_dir: str = ""                   # static console files to serve at / (empty = none yet)
 
     @classmethod
     def from_env(cls, **overrides):

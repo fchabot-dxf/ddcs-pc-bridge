@@ -21,6 +21,15 @@ class LocalFolderBackend(Backend):
         ids = [f[:-3] for f in os.listdir(self.inbox) if f.endswith(".nc")]
         return sorted(ids)
 
+    def put_job(self, job_id, nc_bytes, mapping=None):
+        if isinstance(nc_bytes, str):
+            nc_bytes = nc_bytes.encode("utf-8")
+        with open(os.path.join(self.inbox, job_id + ".nc"), "wb") as f:
+            f.write(nc_bytes)
+        if mapping:
+            with open(os.path.join(self.inbox, job_id + ".map.json"), "w", encoding="utf-8") as f:
+                json.dump(mapping, f, indent=2)
+
     def get_job(self, job_id):
         with open(os.path.join(self.inbox, job_id + ".nc"), "rb") as f:
             nc = f.read()
@@ -37,6 +46,30 @@ class LocalFolderBackend(Backend):
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(status, f, indent=2)
         os.replace(tmp, path)        # atomic — a reader never sees a half-written status
+
+    def get_status(self, job_id):
+        path = os.path.join(self.status, job_id + ".json")
+        if not os.path.exists(path):
+            return None
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+
+    def list_statuses(self):
+        out = []
+        for fn in sorted(os.listdir(self.status)):
+            if fn.endswith(".json"):
+                with open(os.path.join(self.status, fn), encoding="utf-8") as f:
+                    out.append(json.load(f))
+        return out
+
+    def put_heartbeat(self, obj):
+        d = os.path.join(self.root, "gateway")
+        os.makedirs(d, exist_ok=True)
+        path = os.path.join(d, "heartbeat.json")
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(obj, f, indent=2)
+        os.replace(tmp, path)
 
     def delete_job(self, job_id):
         for ext in (".nc", ".map.json"):

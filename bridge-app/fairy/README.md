@@ -15,6 +15,9 @@ only at the bucket ([`../shared/PROTOCOL.md`](../shared/PROTOCOL.md)).
 | `slave.py` | beacon source: real `ModbusBeaconSource` (COM6) + hardware-free `SimBeaconSource` |
 | `cncdisk.py` | CNCDISK file explorer: publish listing + safe `delete` command channel (PROTOCOL §7) |
 | `tracker.py` | pure `(map, beacon) → status object` (PROTOCOL §2/§5) |
+| `identity.py` | machine identity: provision `.bridge-machine.json` + verify-before-deliver (CONFIGS §7) |
+| `ops.py` | API-first operations surface (submit/queue/status/files/read/delete/descriptor) — reused by server + future MCP |
+| `server.py` | local HTTP server: serve the console + ops API (offline/local configs) |
 | `backend/` | the transport seam — `local_folder.py` (test) and `r2.py` (prod), same methods |
 
 ## Run it
@@ -33,10 +36,10 @@ python -m fairy.bridge run --backend r2 --dest \\192.168.0.99\CNCDISK --port COM
 ```
 
 ## Status
-- [x] Backend seam + LocalFolder backend, Poller, Transfer, Tracker, Sim/Modbus slave, CNCDISK explorer — built, self-test + demo passing.
+- [x] Backend seam + LocalFolder backend, Poller, Transfer, Tracker, Sim/Modbus slave, CNCDISK explorer — built, self-test + demo passing (39 checks).
 - [x] Two job types: tracked (Fusion, beacons) + deliver-only (probe, no map); no bucket retention (controller retains).
-- [x] **SMB delivery proven live on the V4.1** (2026-06-07); **CNCDISK explorer (list + safe delete) proven live on the V4.1**.
+- [x] **Phase 1:** ops API (`ops.py`) + local HTTP server (`server.py`) + machine identity (`identity.py`, provision + verify-before-deliver) + heartbeat.
+- [x] **Proven live on the V4.1** (2026-06-07): SMB delivery; CNCDISK explorer (list + safe delete); provision + verify + serving the real CNCDISK over the local HTTP API.
 - [x] `r2.py` — written (S3 API). **[TO TEST] live against a real bucket** (`--r2-check`, needs S3 token).
 - [ ] Run live on the **Expert**: real Modbus beacons (COM6) end to end (only testable there).
 - [ ] Register `bridge.py` as a Task Scheduler task (start at boot + on resume-from-sleep).
-- [ ] (optional) `localui/` zero-lag local tracker.

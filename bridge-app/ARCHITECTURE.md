@@ -100,8 +100,11 @@ post progress to R2.** Outbound-only; never internet-reachable.
 | **Slave** | `fairy/slave.py` | Run the Modbus RTU slave on COM6; watch holding reg 0; decode `28416+n → beacon n` (PROTOCOL §1). Wraps/extends [`modbus_slave.py`](../controllers/expert-m350/tools/modbus_slave.py). |
 | **CNCDISK explorer** | `fairy/cncdisk.py` | Publish a listing of the controller's CNCDISK (`cncdisk/index.json`) and execute web-issued **delete** commands over SMB, with an op-allowlist + target validation (PROTOCOL §7). Touches the controller. |
 | **Tracker** | `fairy/tracker.py` | Map `last_beacon` → `% / op / line / ETA` via the job map; build the status object (PROTOCOL §5). |
-| **Backend** | `fairy/backend/` | The transport seam (interface). `local_folder.py` (test), `r2.py` (prod). `list_inbox`, `get_job`, `put_status`, `delete_job`, `put_cncdisk_index`, `list_commands`, `clear_command`. |
-| **Local UI** *(optional)* | `fairy/localui/` | A tiny `localhost` web server serving the tracker **live from the slave** (zero lag) for viewing right at the machine. Same frontend as `web/ui`. |
+| **Identity** | `fairy/identity.py` | Machine identity on the controller's disk: provision `.bridge-machine.json`; verify-before-deliver (CONFIGS §7). Touches the controller. |
+| **Ops** | `fairy/ops.py` | The **API-first operations surface** (`submit_job`, `list_queue`, `get_status`, `list_files`, `read_file`, `delete_file`, `descriptor`). One definition reused by the local server + future MCP/embeds. |
+| **Local server** | `fairy/server.py` | Stdlib HTTP server exposing Ops as JSON + serving the console at `/` — how the gateway serves the console offline/on the LAN (CONFIGS §3). |
+| **Backend** | `fairy/backend/` | The transport seam (interface). `local_folder.py` (test), `r2.py` (prod). `list_inbox`/`put_job`/`get_job`/`put_status`/`get_status`/`list_statuses`/`delete_job`/`put_cncdisk_index`/`list_commands`/`clear_command`/`put_heartbeat`. |
+| **Local UI** *(optional)* | `fairy/localui/` | *(superseded by `server.py` serving the console — kept as a label for the zero-lag local view)* |
 
 ### Module detail
 - **Poller** — the heart. Holds the single-active-job rule (because beacons carry no job id, PROTOCOL §4).
@@ -169,6 +172,9 @@ bridge-app/
     slave.py                   Modbus slave + beacon decode
     cncdisk.py                 CNCDISK listing + safe delete-command channel (PROTOCOL §7)
     tracker.py                 beacon → status (via map)
+    identity.py                machine identity (provision + verify-before-deliver)
+    ops.py                     API-first operations surface (server + future MCP/embeds)
+    server.py                  local HTTP server (serve console + ops API) — offline/local
     backend/   __init__.py (interface) · local_folder.py · r2.py
     localui/   server.py · index.html   (optional, zero-lag local view)
     requirements.txt

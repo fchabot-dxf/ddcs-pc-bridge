@@ -15,6 +15,7 @@ _INBOX = "inbox/"
 _STATUS = "status/"
 _CNCDISK_INDEX = "cncdisk/index.json"
 _COMMANDS = "commands/"
+_HEARTBEAT = "gateway/heartbeat.json"
 
 
 class R2Backend(Backend):
@@ -49,6 +50,16 @@ class R2Backend(Backend):
                 break
         return sorted(ids)
 
+    def put_job(self, job_id, nc_bytes, mapping=None):
+        if isinstance(nc_bytes, str):
+            nc_bytes = nc_bytes.encode("utf-8")
+        self.s3.put_object(Bucket=self.bucket, Key=f"{_INBOX}{job_id}.nc",
+                           Body=nc_bytes, ContentType="text/plain")
+        if mapping:
+            self.s3.put_object(Bucket=self.bucket, Key=f"{_INBOX}{job_id}.map.json",
+                               Body=json.dumps(mapping, indent=2).encode("utf-8"),
+                               ContentType="application/json")
+
     def get_job(self, job_id):
         nc = self.s3.get_object(Bucket=self.bucket, Key=f"{_INBOX}{job_id}.nc")["Body"].read()
         m = {}
@@ -66,6 +77,36 @@ class R2Backend(Backend):
             Body=json.dumps(status, indent=2).encode("utf-8"),
             ContentType="application/json",
         )
+
+    def get_status(self, job_id):
+        try:
+            raw = self.s3.get_object(Bucket=self.bucket, Key=f"{_STATUS}{job_id}.json")["Body"].read()
+            return json.loads(raw)
+        except self.s3.exceptions.NoSuchKey:
+            return None
+
+    def list_statuses(self):
+        out = []
+        token = None
+        while True:
+            kw = {"Bucket": self.bucket, "Prefix": _STATUS}
+            if token:
+                kw["ContinuationToken"] = token
+            resp = self.s3.list_objects_v2(**kw)
+            for o in resp.get("Contents", []):
+                if o["Key"].endswith(".json"):
+                    raw = self.s3.get_object(Bucket=self.bucket, Key=o["Key"])["Body"].read()
+                    out.append(json.loads(raw))
+            if resp.get("IsTruncated"):
+                token = resp.get("NextContinuationToken")
+            else:
+                break
+        return sorted(out, key=lambda s: s.get("jobId", ""))
+
+    def put_heartbeat(self, obj):
+        self.s3.put_object(Bucket=self.bucket, Key=_HEARTBEAT,
+                           Body=json.dumps(obj, indent=2).encode("utf-8"),
+                           ContentType="application/json")
 
     def delete_job(self, job_id):
         for ext in (".nc", ".map.json"):

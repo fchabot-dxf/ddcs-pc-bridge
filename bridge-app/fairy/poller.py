@@ -20,7 +20,7 @@ One tick = one iteration. bridge.py calls tick() on a timer.
 """
 import time
 
-from . import tracker
+from . import identity, tracker
 
 
 class Poller:
@@ -51,6 +51,16 @@ class Poller:
         tracked = bool(m.get("total_beacons"))     # has a map with beacons -> Fusion cut; else deliver-only
         self.beacons.reset(m.get("marker") or 111)  # per-job marker; forget the previous job's beacons (§4)
         events = [f"claimed {job_id}"]
+
+        # safety: never deliver to the wrong controller (CONFIGS §7). Skipped if no machine_id configured.
+        ok, reason = identity.verify(self.cfg.expert_dest, self.cfg.identity_filename, self.cfg.machine_id)
+        if not ok:
+            self.log(f"[poller] REFUSED {job_id}: {reason}")
+            self.backend.put_status(
+                job_id, tracker.build_status(job_id, name, m, "failed", 0, events + [f"refused: {reason}"]))
+            self.backend.delete_job(job_id)
+            return
+
         try:
             dest = self.transfer.deliver(nc, name)
         except OSError as e:

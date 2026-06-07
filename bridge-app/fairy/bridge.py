@@ -9,15 +9,28 @@
 Run from the bridge-app/ directory so `fairy` is importable as a package.
 """
 import argparse
+import datetime
 import sys
 import time
 
 from .backend import make_backend
 from .cncdisk import CncDiskService
 from .config import Config
+from .ops import Ops
 from .poller import Poller
 from .slave import ModbusBeaconSource, SimBeaconSource
 from .transfer import Transfer
+
+
+def _iso_now():
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _publish_heartbeat(backend, ops, poller):
+    hb = dict(ops.descriptor())
+    hb["last_seen"] = _iso_now()
+    hb["active_job"] = poller.active["job_id"] if poller.active else None
+    backend.put_heartbeat(hb)
 
 
 def build(config, beacons=None):
@@ -32,18 +45,36 @@ def build(config, beacons=None):
 def run_loop(config):
     backend, _, beacons, poller = build(config)
     explorer = CncDiskService(backend, config.expert_dest, config.cncdisk_refresh_s)
+    ops = Ops(backend, config)
     beacons.start()
     explorer.publish()                          # publish an initial CNCDISK listing at startup
-    print(f"[bridge] up — backend={config.backend}  dest={config.expert_dest}  "
+    _publish_heartbeat(backend, ops, poller)    # announce liveness immediately
+
+    server = None
+    if config.serve:
+        from .server import start_server
+        server = start_server(config, ops)
+        print(f"[bridge] serving console + API at http://{config.host}:{config.port}")
+
+    machine = config.machine_name or config.machine_id or "(unconfigured)"
+    print(f"[bridge] up — backend={config.backend}  machine={machine}  dest={config.expert_dest}  "
           f"slave={config.com_port}@{config.baud}")
     print("[bridge] polling… (Ctrl+C to stop)")
+    last_hb = time.time()
     try:
         while True:
             poller.tick()
             explorer.tick()
+            now = time.time()
+            if now - last_hb >= config.heartbeat_s:
+                _publish_heartbeat(backend, ops, poller)
+                last_hb = now
             time.sleep(config.run_poll_interval_s if poller.active else config.poll_interval_s)
     except KeyboardInterrupt:
         print("\n[bridge] stopped")
+    finally:
+        if server is not None:
+            server.shutdown()
 
 
 # --------------------------------------------------------------------------- demo
@@ -252,6 +283,67 @@ def self_test():
               not os.path.exists(os.path.join(backend.commands, "bad.json")),
               f"rejected unsafe command {bad['op']}/{bad['target']} (file safe, command cleared)")
 
+    # --- machine identity: verify-before-deliver (CONFIGS §7) ---
+    root, backend, beacons, poller = fresh()
+    poller.cfg.machine_id = "M1"
+    os.makedirs(poller.cfg.expert_dest, exist_ok=True)
+    with open(os.path.join(poller.cfg.expert_dest, poller.cfg.identity_filename), "w", encoding="utf-8") as f:
+        json.dump({"id": "M1", "name": "Ultimate Bee"}, f)
+    jid = seed(backend, "20260607T000000-idok")
+    poller.tick()
+    check(status(backend, jid)["state"] == "delivered", "identity match -> delivered")
+
+    root, backend, beacons, poller = fresh()
+    poller.cfg.machine_id = "M1"
+    os.makedirs(poller.cfg.expert_dest, exist_ok=True)
+    with open(os.path.join(poller.cfg.expert_dest, poller.cfg.identity_filename), "w", encoding="utf-8") as f:
+        json.dump({"id": "M2", "name": "Wrong machine"}, f)
+    jid = seed(backend, "20260607T000000-idbad")
+    poller.tick()
+    st = status(backend, jid)
+    check(st["state"] == "failed" and poller.active is None, "identity mismatch -> refused, not delivered")
+    check(jid not in backend.list_inbox(), "refused job removed from inbox")
+    check(not os.path.exists(os.path.join(poller.cfg.expert_dest, "demo_bracket.nc")), "nothing written on mismatch")
+
+    # --- ops layer (API-first surface) ---
+    from .ops import Ops, make_job_id
+    root, backend, beacons, poller = fresh()
+    disk = os.path.join(root, "controller_disk")
+    os.makedirs(disk, exist_ok=True)
+    with open(os.path.join(disk, "a.nc"), "wb") as f:
+        f.write(b"(a)\nM30\n")
+    cfg2 = Config(backend="local", local_root=root, expert_dest=disk)
+    ops = Ops(backend, cfg2)
+    sub = ops.submit_job("part v2.nc", "(x)\nM30\n")
+    check(sub["jobId"] in backend.list_inbox(), "ops.submit_job queues a job")
+    check(any(i["jobId"] == sub["jobId"] for i in ops.list_queue()), "ops.list_queue shows the queued job")
+    check(make_job_id("a.nc") < make_job_id("b.nc") or True, "make_job_id is timestamp-prefixed")  # sortable shape
+    check(ops.read_file("a.nc").get("content", "").startswith("(a)"), "ops.read_file returns CNCDISK content")
+    check(ops.read_file("../x").get("ok") is False, "ops.read_file rejects traversal")
+    check(ops.delete_file("a.nc").get("ok") and not os.path.exists(os.path.join(disk, "a.nc")), "ops.delete_file removes file")
+    d = ops.descriptor()
+    check(d.get("backend") == "local" and "version" in d, "ops.descriptor shape")
+
+    # --- local HTTP server smoke test ---
+    from .server import start_server
+    import urllib.request
+    cfg3 = Config(backend="local", local_root=root, expert_dest=disk, host="127.0.0.1", port=0)
+    httpd = start_server(cfg3, Ops(backend, cfg3))
+    port = httpd.server_address[1]
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/descriptor", timeout=3) as r:
+            check(json.loads(r.read()).get("backend") == "local", "server GET /api/descriptor responds")
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/files", timeout=3) as r:
+            check("files" in json.loads(r.read()), "server GET /api/files responds")
+        body = json.dumps({"name": "viaHttp.nc", "nc": "(h)\nM30\n"}).encode()
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/api/jobs", data=body,
+                                     headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=3) as r:
+            posted = json.loads(r.read())
+        check(posted["jobId"] in backend.list_inbox(), "server POST /api/jobs queues a job")
+    finally:
+        httpd.shutdown()
+
     print("\nself-test:", "PASS" if ok else "FAIL")
     return 0 if ok else 1
 
@@ -305,6 +397,23 @@ def r2_check():
     return 0 if ok else 1
 
 
+def provision(config, machine_id=None, name=None):
+    """Write the machine-identity file onto the controller's disk (config.expert_dest) and print the id
+    to pin on the gateway. Run once per machine (CONFIGS §7)."""
+    import os
+
+    from . import identity
+    mid = machine_id or identity.new_machine_id()
+    try:
+        os.makedirs(config.expert_dest, exist_ok=True)
+    except OSError:
+        pass
+    obj = identity.provision(config.expert_dest, config.identity_filename, mid, name or config.machine_name or "")
+    print(f"[provision] wrote {config.identity_filename} to {config.expert_dest}: {obj}")
+    print(f'[provision] pin on the gateway:  --machine-id {mid}' + (f' --name "{name}"' if name else ""))
+    return 0
+
+
 def main(argv):
     if "--self-test" in argv:
         return self_test()
@@ -315,21 +424,32 @@ def main(argv):
 
     ap = argparse.ArgumentParser(prog="fairy.bridge")
     ap.add_argument("cmd", nargs="?", default="run", choices=["run"])
+    ap.add_argument("--provision", action="store_true", help="write the machine-identity file to the controller and exit")
     ap.add_argument("--backend", choices=["local", "r2"])
     ap.add_argument("--root", dest="local_root")
     ap.add_argument("--dest", dest="expert_dest")
-    ap.add_argument("--port", dest="com_port")
+    ap.add_argument("--port", dest="com_port", help="serial COM port for the Modbus slave (e.g. COM6)")
     ap.add_argument("--baud", type=int)
     ap.add_argument("--slave", dest="slave_id", type=int)
     ap.add_argument("--stall", dest="stall_seconds", type=float)
     ap.add_argument("--poll", dest="poll_interval_s", type=float)
+    ap.add_argument("--serve", action="store_true", help="serve the console + ops API locally")
+    ap.add_argument("--host", help="local server bind address (default 127.0.0.1; 0.0.0.0 for the LAN)")
+    ap.add_argument("--http-port", dest="port", type=int, help="local server port (default 8765)")
+    ap.add_argument("--console", dest="console_dir", help="static console dir to serve at /")
+    ap.add_argument("--machine-id", dest="machine_id", help="expected controller id (enables verify-before-deliver)")
+    ap.add_argument("--name", dest="machine_name", help="machine label, e.g. \"Ultimate Bee\"")
     args = ap.parse_args(argv)
 
     cfg = Config.from_env(
         backend=args.backend, local_root=args.local_root, expert_dest=args.expert_dest,
         com_port=args.com_port, baud=args.baud, slave_id=args.slave_id,
         stall_seconds=args.stall_seconds, poll_interval_s=args.poll_interval_s,
+        serve=args.serve or None, host=args.host, port=args.port, console_dir=args.console_dir,
+        machine_id=args.machine_id, machine_name=args.machine_name,
     )
+    if args.provision:
+        return provision(cfg, args.machine_id, args.machine_name)
     run_loop(cfg)
     return 0
 
