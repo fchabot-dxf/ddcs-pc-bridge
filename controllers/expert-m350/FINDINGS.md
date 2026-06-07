@@ -264,6 +264,33 @@ reading executor internals:
 - Reading plain I/O/alarm vars like `#1000` may or may not be safe — **untested in isolation** (the
   PUSH_RUNSTATE wedge read `#1630` first, so we can't blame `#1000` yet). Don't blind-test live.
 
+## ⭐ Syntax-error PREVENTION (PC-side linter) — the practical answer to "see syntax errors" `[2026-06-06]`
+The controller's `syntax error:L<n>` is **yacc-generated** (`parse.out` = Berkeley yacc 1.9; format `:L%d[%s]`;
+tracks `Line %d` + `Col %d`) and rendered to **`/dev/fb0` (the screen)** — **NOT** written to any file we can
+read over SMB (verified: nothing on SYSDISK/CNCDISK updates on a syntax error; the `msg`/`msg1`/`msg2` files
+are the static *string catalog*, not a log). ⇒ the error text **cannot be read remotely**. So the practical
+move is to **catch errors before they reach the machine**: `tools/ddcs_lint.py`, a PC-side linter grounded in
+parse.out's real vocabulary + the `ddcs-expert` skill's CORE_TRUTH quirks + our live hazards. **Validated
+against ~70 production + factory macros: clean except one genuine bug it caught.** Flags:
+`E-NESTPAREN` (nested `()` in a comment — the bug that wedged `MGETDATA_TEST`), `E-BRACKET` (unbalanced `[]`),
+`E-GOTOSPACE` (`GOTO 1`), `E-MARGS` (wrong `MSETDATA/MGETDATA` arg count), `E-CH1630` (reading `#1630-#1636`,
+the analyzer wedge), + warnings (FANUC ops, G10, bare-const G53, `#2070`→persistent, priming).
+
+### DDCS comment syntax — CONFIRMED 2026-06-06
+- **Two comment styles:** `(...)` **and `;` to end-of-line** (`macrob-programming-rules.md`: "Style 3
+  Semicolon (RECOMMENDED)"; 714 uses across the production corpus). Both valid.
+- **`(...)` comments CANNOT NEST** — `(text (inner) more)` closes at the first `)`, leaving the rest as garbage
+  → parser error on the NEXT line. **This is exactly what wedged `MGETDATA_TEST.nc`.**
+
+### Pr76 / #0076 / #576 "Macro Enable" — REQUIRED to run macros `[CONFIRMED]`
+Must be **Open**; machine reads **#576 = 1 (Open)** ✓. Numbering: panel **Pr76** = ENG **#0076** = macro-addr **#576**.
+
+### CORE_TRUTH (skill) vs factory-firmware reality — discrepancies the linter exposed
+- **G10:** skill says "G10 is broken," but factory `key-5.nc`/`key-6.nc` **use** it → not universally broken; context-specific.
+- **`#2070` range:** skill says "only #50–#499," but factory `key-4.nc` does `#2070=800` → silent-failure is specific to **persistent** targets, not all >499.
+- **Priming bug:** skill says wash the RHS (`#1153=#880+0`); production `O_Save_Safe_Park.nc` instead **primes the target first** (`#1153=1` then `#1153=#880`). Two working approaches — linter accepts both.
+- **Real bug found:** skill's `macro_Thread_milling.nc:72` has a bracket imbalance (`FUP[[[[…]/2-#71]/#57]` = 4 `[` vs 3 `]`).
+
 ## Error-readback options (ranked)
 1. **Serial Modbus (best):** a `sysstart`/dispatcher macro periodically `MSETDATA`s the alarm/status
    vars to the PC slave. `[VERIFY which system var holds the live alarm code.]`
