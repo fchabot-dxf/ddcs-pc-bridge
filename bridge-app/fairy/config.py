@@ -1,0 +1,49 @@
+"""config.py — every knob in one place (ARCHITECTURE.md §4).
+
+Defaults match the confirmed studio rig (COM6 @ 115200, Expert CNCDISK at 192.168.0.99).
+R2 credentials are read from the environment so secrets never live in the repo.
+"""
+import os
+from dataclasses import dataclass
+
+
+@dataclass
+class Config:
+    # --- backend (the rendezvous store; PROTOCOL §3) -----------------------
+    backend: str = "local"                  # "local" (test) | "r2" (prod)
+    local_root: str = "./_bridge_data"      # local-folder backend root (inbox/ status/)
+
+    # --- R2 (only used when backend == "r2"); pulled from env --------------
+    r2_endpoint: str = ""
+    r2_bucket: str = ""
+    r2_access_key: str = ""
+    r2_secret_key: str = ""
+
+    # --- transfer to the controller (transfer.py — the only hardware path) -
+    # The confirmed CNCDISK share. For a no-hardware test, point this at a folder.
+    expert_dest: str = r"\\192.168.0.99\CNCDISK"
+
+    # --- Modbus slave (slave.py) ------------------------------------------
+    com_port: str = "COM6"                  # SABRENT FTDI on CNC-FAIRY
+    baud: int = 115200
+    slave_id: int = 1
+
+    # --- loop / timing ----------------------------------------------------
+    poll_interval_s: float = 5.0            # while idle (no active job)
+    run_poll_interval_s: float = 1.0        # while a job is active (faster progress)
+    stall_seconds: float = 120.0            # no new beacon this long -> "stalled"
+
+    cncdisk_refresh_s: float = 15.0         # how often to republish the CNCDISK file listing
+
+    @classmethod
+    def from_env(cls, **overrides):
+        """Build a Config, layering env vars (for secrets) then explicit overrides."""
+        c = cls()
+        c.r2_endpoint = os.environ.get("R2_ENDPOINT", c.r2_endpoint)
+        c.r2_bucket = os.environ.get("R2_BUCKET", c.r2_bucket)
+        c.r2_access_key = os.environ.get("R2_ACCESS_KEY", c.r2_access_key)
+        c.r2_secret_key = os.environ.get("R2_SECRET_KEY", c.r2_secret_key)
+        for k, v in overrides.items():
+            if v is not None:
+                setattr(c, k, v)
+        return c

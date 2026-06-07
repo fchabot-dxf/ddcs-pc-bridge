@@ -19,7 +19,7 @@ Extensive, module-by-module design for the DDCS Expert job bridge. The system is
                                           │ PUT job+map / GET status        │
                                           ▼                                 ▼
               ┌────────────────────── R2 bucket (the rendezvous) ──────────────────────┐
-              │  inbox/<jobId>.nc(+map)   status/<jobId>.json   archive/<jobId>...      │
+              │  inbox/<jobId>.nc(+map)   status/<jobId>.json   (deleted on delivery)   │
               └────────────────────────────────┬─────────────────────────▲─────────────┘
                                           GET job / LIST inbox        PUT status
                                                ▼                          │
@@ -64,7 +64,7 @@ tracker.** Holds no machine access; its only outside contact is the R2 bucket (v
 | **Instrument** | `web/instrument/` | browser (client-side) | Parse the `.nc`, insert ≤255 time-paced beacons on Z-up retracts, emit instrumented `.nc` + map. JS port of `checkpoint_insert.py` (its self-test is the spec). |
 | **Queue client** | `web/ui/queue.js` | browser | Upload job+map to `inbox/`, list the operator's jobs, drive the submit form — all via the Worker. |
 | **Tracker** | `web/ui/tracker.js` | browser | Poll `status/<jobId>.json`, render `% · op · line · ETA`, advance the queue as jobs finish. |
-| **Worker / API** | `web/worker/` | Cloudflare edge | The authenticated gateway to R2 so the **browser never holds R2 keys**. Endpoints: `POST /jobs` (put inbox), `GET /jobs` (list), `GET /status/:id`. Enforces the access token. |
+| **Worker / API** | `web/worker/` | Cloudflare edge | The authenticated **API** to R2 so the **browser never holds R2 keys** (not to be confused with the *gateway* = fairy). Endpoints: `POST /jobs` (put inbox), `GET /jobs` (list), `GET /status/:id`. Enforces the access token. |
 
 ### Module detail
 - **UI** — three tabs (Submit · Queue · Tracker). Static, served by Pages. Talks only to the Worker.
@@ -96,16 +96,18 @@ post progress to R2.** Outbound-only; never internet-reachable.
 | **Entry / service** | `fairy/bridge.py` | Wires the modules together; runs the loop; handles startup/shutdown/logging. |
 | **Config** | `fairy/config.py` | COM port, Expert drive path/UNC, R2 creds, poll interval, stall timeout. One place. |
 | **Poller** | `fairy/poller.py` | The state machine: LIST `inbox/`, pick oldest, enforce **one active job** (PROTOCOL §4), drive transitions delivered→running→done/stalled. |
-| **Transfer** | `fairy/transfer.py` | Copy the `.nc` onto the Expert's CNCDISK over SMB (`\\192.168.0.99\CNCDISK`, confirmed R/W). The only module that touches the controller. |
+| **Transfer** | `fairy/transfer.py` | Copy the `.nc` onto the Expert's CNCDISK over SMB (`\\192.168.0.99\CNCDISK`, confirmed R/W). One of two modules that touch the controller. |
 | **Slave** | `fairy/slave.py` | Run the Modbus RTU slave on COM6; watch holding reg 0; decode `28416+n → beacon n` (PROTOCOL §1). Wraps/extends [`modbus_slave.py`](../controllers/expert-m350/tools/modbus_slave.py). |
+| **CNCDISK explorer** | `fairy/cncdisk.py` | Publish a listing of the controller's CNCDISK (`cncdisk/index.json`) and execute web-issued **delete** commands over SMB, with an op-allowlist + target validation (PROTOCOL §7). Touches the controller. |
 | **Tracker** | `fairy/tracker.py` | Map `last_beacon` → `% / op / line / ETA` via the job map; build the status object (PROTOCOL §5). |
-| **Backend** | `fairy/backend/` | The transport seam (interface). `local_folder.py` (test), `r2.py` (prod). `get_job`, `list_inbox`, `put_status`, `archive`. |
+| **Backend** | `fairy/backend/` | The transport seam (interface). `local_folder.py` (test), `r2.py` (prod). `list_inbox`, `get_job`, `put_status`, `delete_job`, `put_cncdisk_index`, `list_commands`, `clear_command`. |
 | **Local UI** *(optional)* | `fairy/localui/` | A tiny `localhost` web server serving the tracker **live from the slave** (zero lag) for viewing right at the machine. Same frontend as `web/ui`. |
 
 ### Module detail
 - **Poller** — the heart. Holds the single-active-job rule (because beacons carry no job id, PROTOCOL §4).
-  Sequence per job: claim oldest from `inbox/` → `Transfer` → status `delivered` → watch `Slave` for the
-  job's beacons → on `complete` beacon, `archive` + free the slot; on stall timeout, mark `stalled`.
+  Sequence per job: claim oldest from `inbox/` → `Transfer` → **`delete_job` (no retention, PROTOCOL §3)** →
+  status `delivered` → watch `Slave` for the job's beacons (translated via the in-RAM map) → on `complete`
+  beacon free the slot; on stall timeout, mark `stalled`.
 - **Transfer** — input: a local `.nc` path; action: SMB file copy to the mapped Expert drive; output: success
   or IO error → status `failed`. Isolated so the risky/hardware bit is one auditable module.
 - **Slave** — long-running; exposes "latest valid beacon n + timestamp" to the Poller/Tracker. Validates the
@@ -157,7 +159,7 @@ bridge-app/
   web/                       ── APP 1 (Cloudflare; runs anywhere) ──
     ui/        index.html · submit.js · queue.js · tracker.js · styles.css
     instrument/ instrument.js · gcode-parse.js          (beacon insertion, browser)
-    worker/    api.js · auth.js                          (authed R2 gateway)
+    worker/    api.js · auth.js                          (authed R2 API)
     wrangler.toml
   fairy/                     ── APP 2 (CNC-FAIRY; the wired PC) ──
     bridge.py                  entry / service loop
@@ -165,6 +167,7 @@ bridge-app/
     poller.py                  queue drainer + single-active-job state machine
     transfer.py                SMB write to the Expert
     slave.py                   Modbus slave + beacon decode
+    cncdisk.py                 CNCDISK listing + safe delete-command channel (PROTOCOL §7)
     tracker.py                 beacon → status (via map)
     backend/   __init__.py (interface) · local_folder.py · r2.py
     localui/   server.py · index.html   (optional, zero-lag local view)
@@ -231,10 +234,12 @@ access — this is "how the 2 PCs + the controller are actually used."
 | fairy/poller, /tracker, /backend, /config | CNC-FAIRY | Python | no (orchestration) |
 | **fairy/transfer** | CNC-FAIRY | Python | **yes — SMB write to CNCDISK** |
 | **fairy/slave** | CNC-FAIRY | Python | **yes — serial COM6** |
+| **fairy/cncdisk** | CNC-FAIRY | Python | **yes — SMB list + delete on CNCDISK** |
 | fairy/localui | CNC-FAIRY (localhost) | Python + JS | no |
 
-Only **two** modules touch the controller — `transfer` (file copy) and `slave` (serial read). Both are
-isolated so the hardware surface is small and auditable.
+Only **three** modules touch the controller — `transfer` (file write), `slave` (serial read), and
+`cncdisk` (SMB list + delete). All isolated so the hardware surface is small and auditable. Only `cncdisk`'s
+delete is web-triggered, and it's gated by an op-allowlist + target validation (PROTOCOL §7).
 
 ---
 
@@ -254,8 +259,8 @@ isolated so the hardware surface is small and auditable.
 1. [x] `shared/PROTOCOL.md` — the seam.
 2. [x] Beacon instrumenter reference (`checkpoint_insert.py`, Python) — built, self-test passing.
 3. [x] UI mockup (`bridge_ui_mock.html`).
-4. [ ] `fairy/` against the **LocalFolder** backend → run instrument → "upload" → relay → tracker on one PC.
-5. [ ] `fairy/backend/r2.py` — swap in R2.
+4. [x] `fairy/` against the **LocalFolder** backend → relay → tracker on one PC (`--self-test` + `--demo` pass).
+5. [~] `fairy/backend/r2.py` — written (S3 API); **[TO TEST]** live against a real bucket.
 6. [ ] `web/` — Pages UI + Instrument (JS) + Worker, on R2.
 7. [ ] Deploy: Worker/Pages to Cloudflare; `bridge.py` as a CNC-FAIRY startup/resume task.
 8. [ ] (optional) `fairy/localui` zero-lag local tracker.

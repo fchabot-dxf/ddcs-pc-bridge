@@ -1,0 +1,8 @@
+# fairy/ — CNC-FAIRY bridge dependencies
+#
+# The slave + demo/self-test run on the stdlib alone. The two lines below are only needed
+# for LIVE operation (real Modbus hardware, real R2). --self-test and --demo need neither.
+
+pymodbus==3.6.9   # PIN: 3.13 broke the classic datastore (FINDINGS / tools/README). Needs pyserial.
+pyserial          # serial transport for pymodbus (the SABRENT FTDI / COM6)
+boto3             # R2 backend only (S3-compatible API); not needed for the local backend
