@@ -33,7 +33,9 @@ def list_dir(path):
 
 
 def build_index(path):
-    """Listing of CNCDISK. Never raises — an unreachable controller becomes an index with an error."""
+    """Listing of CNCDISK. Never raises — unconfigured/unreachable becomes an index with an error."""
+    if not path:
+        return {"path": "", "files": [], "error": "no controller configured", "updated_at": _now()}
     try:
         return {"path": path, "files": list_dir(path), "updated_at": _now()}
     except OSError as e:
@@ -61,11 +63,12 @@ def apply_command(path, cmd):
 
 
 class CncDiskService:
-    """Per-tick: process any pending commands, then republish the listing on a cadence."""
+    """Per-tick: process any pending commands, then republish the listing on a cadence.
+    Reads config.expert_dest live, so Setup can re-point the controller disk without a restart."""
 
-    def __init__(self, backend, path, refresh_s=15.0, log=print):
+    def __init__(self, backend, config, refresh_s=15.0, log=print):
         self.backend = backend
-        self.path = path
+        self.cfg = config
         self.refresh_s = refresh_s
         self.log = log
         self._last_index = 0.0
@@ -78,12 +81,12 @@ class CncDiskService:
             self._last_index = now
 
     def publish(self):
-        self.backend.put_cncdisk_index(build_index(self.path))
+        self.backend.put_cncdisk_index(build_index(self.cfg.expert_dest))
 
     def _process_commands(self):
         changed = False
         for cmd_id, cmd in self.backend.list_commands():
-            result = apply_command(self.path, cmd)
+            result = apply_command(self.cfg.expert_dest, cmd)
             level = "ok" if result.get("ok") else "REJECTED"
             self.log(f"[cncdisk] command {cmd_id} {cmd}: {level} {result}")
             self.backend.clear_command(cmd_id)     # processed (good or bad) -> never re-run

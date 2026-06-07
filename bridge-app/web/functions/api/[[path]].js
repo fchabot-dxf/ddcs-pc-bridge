@@ -89,6 +89,15 @@ export async function onRequest(context) {
     if (m === "GET" && path === "/file") {
       return json({ ok: false, error: "file view is not available in cloud mode" });
     }
+    if (m === "GET" && path === "/config") {   // read-only mirror from the heartbeat
+      const hb = (await readJSON(bucket, HEARTBEAT)) || {};
+      return json({ machine_name: hb.machine_name || "", dest: hb.dest || "", backend: hb.backend || "r2",
+                    controller_connected: !!hb.controller_connected,
+                    is_remote: (hb.dest || "").startsWith("\\\\"), readonly: true });
+    }
+    if (m === "POST" && path === "/config") {
+      return json({ ok: false, error: "the cloud can't configure the gateway — do it on the machine PC" }, 405);
+    }
     if (m === "POST" && path === "/jobs") {
       const b = await request.json().catch(() => ({}));
       if (!b.name || b.nc == null) return json({ error: "name and nc required" }, 400);

@@ -20,8 +20,10 @@ class Config:
     r2_secret_key: str = ""
 
     # --- transfer to the controller (transfer.py — the only hardware path) -
-    # The confirmed CNCDISK share. For a no-hardware test, point this at a folder.
-    expert_dest: str = r"\\192.168.0.99\CNCDISK"
+    # The controller's CNCDISK network share, e.g. \\192.168.0.99\CNCDISK or \\10.0.0.50\cncdisk.
+    # Empty = unconfigured (set it in the Setup UI). MUST be a network share — the Setup layer rejects
+    # local folders so the connection is always a real controller (no confusing local "sandbox").
+    expert_dest: str = ""
 
     # --- Modbus slave (slave.py) ------------------------------------------
     com_port: str = "COM6"                  # SABRENT FTDI on CNC-FAIRY
@@ -48,6 +50,7 @@ class Config:
     port: int = 8765
     console_dir: str = ""                   # static console files to serve at / (empty = none yet)
     open_browser: bool = False              # --open: pop the console in the default browser on start
+    config_path: str = ""                   # where Setup persists config (empty -> ~/.ddcs-bridge/config.json)
 
     @classmethod
     def from_env(cls, **overrides):

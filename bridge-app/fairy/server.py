@@ -76,6 +76,8 @@ class _Handler(BaseHTTPRequestHandler):
         path, q = u.path, parse_qs(u.query)
         if path == "/api/descriptor":
             return self._send_json(self.ops.descriptor())
+        if path == "/api/config":
+            return self._send_json(self.ops.get_config())
         if path == "/api/queue":
             return self._send_json(self.ops.list_queue())
         if path == "/api/history":
@@ -102,6 +104,8 @@ class _Handler(BaseHTTPRequestHandler):
         if self.path == "/api/files/delete":
             b = self._read_body()
             return self._send_json(self.ops.delete_file(b.get("name", "")))
+        if self.path == "/api/config":
+            return self._send_json(self.ops.set_config(self._read_body()))
         return self._send_json({"error": "not found"}, 404)
 
     # -- static console -------------------------------------------------------

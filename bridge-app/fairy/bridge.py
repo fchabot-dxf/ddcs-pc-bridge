@@ -35,7 +35,7 @@ def _publish_heartbeat(backend, ops, poller):
 
 def build(config, beacons=None):
     backend = make_backend(config)
-    transfer = Transfer(config.expert_dest)
+    transfer = Transfer(config)
     if beacons is None:
         # SimBeaconSource needs no pymodbus/serial — lets the gateway run for UI/SMB-only (--no-slave).
         beacons = (ModbusBeaconSource(config.com_port, config.baud, config.slave_id)
@@ -46,7 +46,7 @@ def build(config, beacons=None):
 
 def run_loop(config):
     backend, _, beacons, poller = build(config)
-    explorer = CncDiskService(backend, config.expert_dest, config.cncdisk_refresh_s)
+    explorer = CncDiskService(backend, config, config.cncdisk_refresh_s)
     ops = Ops(backend, config)
     beacons.start()
     explorer.publish()                          # publish an initial CNCDISK listing at startup
@@ -271,7 +271,7 @@ def self_test():
     for nm in ("keep.nc", "old.nc"):
         with open(os.path.join(cncdisk, nm), "wb") as f:
             f.write(b"(x)\nM30\n")                     # 8 bytes
-    svc = CncDiskService(backend, cncdisk, refresh_s=0.0)
+    svc = CncDiskService(backend, Config(backend="local", local_root=root, expert_dest=cncdisk), refresh_s=0.0)
 
     svc.publish()
     with open(os.path.join(backend.cncdisk, "index.json"), encoding="utf-8") as f:
@@ -338,6 +338,14 @@ def self_test():
     check(ops.delete_file("a.nc").get("ok") and not os.path.exists(os.path.join(disk, "a.nc")), "ops.delete_file removes file")
     d = ops.descriptor()
     check(d.get("backend") == "local" and "version" in d, "ops.descriptor shape")
+
+    # --- Setup (set_config): controller disk must be a network share, never a local folder ---
+    cfg2.config_path = os.path.join(root, "setup.json")
+    bad = ops.set_config({"dest": os.path.join(root, "some_local_dir")})
+    check(bad.get("ok") is False and cfg2.expert_dest == disk, "set_config rejects a local folder (dest unchanged)")
+    good = ops.set_config({"dest": r"\\10.0.0.50\cncdisk", "machine_name": "Bench"})
+    check(good.get("ok") and cfg2.expert_dest == r"\\10.0.0.50\cncdisk", "set_config accepts a network share + applies live")
+    check(json.load(open(cfg2.config_path, encoding="utf-8")).get("machine_name") == "Bench", "set_config persists to config_path")
 
     # --- local HTTP server smoke test ---
     from .server import start_server

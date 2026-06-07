@@ -40,20 +40,20 @@ def build_config():
     return Config.from_env(
         backend=ov.get("backend", "local"),
         local_root=ov.get("local_root", os.path.join(APP_DATA, "data")),
-        expert_dest=ov.get("dest", os.path.join(APP_DATA, "cncdisk")),
+        expert_dest=ov.get("dest", ""),                  # unconfigured until set in Setup (a network share)
         com_port=ov.get("com_port"),
         machine_id=ov.get("machine_id"),
         machine_name=ov.get("machine_name"),
-        enable_slave=ov.get("enable_slave", False),     # default off (no hardware) until configured
+        enable_slave=ov.get("enable_slave", False),      # default off (no Modbus) until configured
         serve=True, host="127.0.0.1", port=int(ov.get("port", 8765)),
         console_dir=os.path.join(_bundle_dir(), "web", "ui"),
+        config_path=os.path.join(APP_DATA, "config.json"),   # Setup persists here
         open_browser=False,                              # the window IS the UI
     )
 
 
 def main():
     cfg = build_config()
-    os.makedirs(cfg.expert_dest, exist_ok=True)
     threading.Thread(target=run_loop, args=(cfg,), daemon=True).start()
 
     url = f"http://{cfg.host}:{cfg.port}"

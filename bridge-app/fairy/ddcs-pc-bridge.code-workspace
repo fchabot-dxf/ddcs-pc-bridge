@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../ddcs-studio-project"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "ddcs-pc-bridge"
+	}
+}

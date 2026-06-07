@@ -11,16 +11,19 @@ import os
 
 
 class Transfer:
-    def __init__(self, dest):
-        self.dest = dest
+    def __init__(self, config):
+        self.cfg = config                            # read expert_dest live (Setup can change it without restart)
 
     def deliver(self, nc_bytes, name) -> str:
-        """Write nc_bytes to <dest>/<name>. Returns the destination path; raises OSError on failure."""
+        """Write nc_bytes to <expert_dest>/<name>. Returns the path; raises OSError on failure."""
+        dest = self.cfg.expert_dest
+        if not dest:
+            raise OSError("no controller disk configured")
         try:
-            os.makedirs(self.dest, exist_ok=True)   # no-op for an existing SMB share / local dir
+            os.makedirs(dest, exist_ok=True)        # no-op for an existing SMB share / local dir
         except OSError:
             pass                                     # share roots can't be "made"; the write below is the real test
-        path = os.path.join(self.dest, name)
+        path = os.path.join(dest, name)
         with open(path, "wb") as f:
             f.write(nc_bytes)
         return path

@@ -2,12 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "DDCS Gateway — serve (no hardware)",
+      "name": "DDCS Gateway — serve (set the disk in Setup)",
       "type": "debugpy",
       "request": "launch",
       "module": "fairy.bridge",
       "args": ["run", "--serve", "--open", "--no-slave", "--console", "web/ui",
-               "--backend", "local", "--root", "_bridge_data", "--dest", "_bridge_data/controller"],
+               "--backend", "local", "--root", "_bridge_data"],
       "cwd": "${workspaceFolder}/bridge-app",
       "console": "integratedTerminal",
       "justMyCode": true

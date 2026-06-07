@@ -48,6 +48,8 @@ class Poller:
 
     # -- idle: pick up the next job ------------------------------------------
     def _maybe_claim(self):
+        if not self.cfg.expert_dest:
+            return                                  # no controller configured yet (Setup) — leave jobs queued
         ids = self.backend.list_inbox()
         if ids:
             self._claim(ids[0])                    # oldest jobId == FIFO

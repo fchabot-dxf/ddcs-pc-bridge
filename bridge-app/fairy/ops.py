@@ -10,11 +10,18 @@ console can't reach the gateway directly, so it writes to R2 and the gateway's p
 same end calls, different trigger.)
 """
 import datetime
+import json
+import os
 import re
 
 from . import __version__, cncdisk, identity
 
 _SLUG = re.compile(r"[^A-Za-z0-9_.-]+")
+
+# A controller disk must be a NETWORK SHARE (\\host\share or //host/share) — never a local folder,
+# so the connection is always a real controller (no confusing local "sandbox").
+def is_network_share(path):
+    return bool(path) and (path.startswith("\\\\") or path.startswith("//"))
 
 
 def make_job_id(name, now=None):
@@ -78,7 +85,8 @@ class Ops:
 
     # --- identity / descriptor ---------------------------------------------
     def controller_reachable(self):
-        import os
+        if not self.cfg.expert_dest:
+            return False
         try:
             return os.path.isdir(self.cfg.expert_dest)
         except OSError:
@@ -97,3 +105,47 @@ class Ops:
             "backend": self.cfg.backend,
             "version": __version__,
         }
+
+    # --- gateway setup (the Setup UI; local gateway only — the cloud can't reach in) --------
+    def get_config(self):
+        c = self.cfg
+        return {
+            "machine_name": c.machine_name, "machine_id": c.machine_id,
+            "dest": c.expert_dest, "com_port": c.com_port,
+            "backend": c.backend, "enable_slave": c.enable_slave,
+            "is_remote": is_network_share(c.expert_dest),
+            "controller_connected": self.controller_reachable(),
+        }
+
+    def _config_file(self):
+        return self.cfg.config_path or os.path.join(os.path.expanduser("~"), ".ddcs-bridge", "config.json")
+
+    def set_config(self, updates):
+        """Apply + persist gateway setup. dest must be a network share (no local folders). Fields the
+        gateway reads live (name/id/dest/com) take effect now; backend/beacons need a restart."""
+        c = self.cfg
+        if "dest" in updates:
+            d = (updates.get("dest") or "").strip()
+            if d and not is_network_share(d):
+                return {"ok": False, "error": r"controller disk must be a network share like \\10.0.0.50\cncdisk (not a local folder)"}
+        restart = False
+        if "machine_name" in updates: c.machine_name = (updates["machine_name"] or "").strip()
+        if "machine_id" in updates: c.machine_id = (updates["machine_id"] or "").strip()
+        if "dest" in updates: c.expert_dest = (updates["dest"] or "").strip()
+        if updates.get("com_port"): c.com_port = updates["com_port"].strip()
+        for k in ("enable_slave", "backend"):
+            if k in updates and updates[k] is not None and getattr(c, k) != updates[k]:
+                setattr(c, k, updates[k]); restart = True
+        path = self._config_file()
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            existing = {}
+            if os.path.exists(path):
+                with open(path, encoding="utf-8") as f:
+                    existing = json.load(f)
+            existing.update({k: v for k, v in updates.items() if v is not None})
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(existing, f, indent=2)
+        except (OSError, ValueError) as e:
+            return {"ok": False, "error": f"applied, but couldn't save {path}: {e}"}
+        return {"ok": True, "restart_needed": restart, "config_path": path, "config": self.get_config()}

@@ -51,6 +51,8 @@ export function makeClient(opts = {}) {
     readFile: (name) => call("/api/file?name=" + encodeURIComponent(name)),
     deleteFile: (name) => postJSON("/api/files/delete", { name }),
     submitJob: (name, nc, map) => postJSON("/api/jobs", { name, nc, map }),
+    getConfig: () => call("/api/config"),
+    setConfig: (updates) => postJSON("/api/config", updates),
   };
 }
 
@@ -67,15 +69,18 @@ export function deviceName(d) {
   return "local";
 }
 
-export function deriveStatus(client, descriptor) {
-  if (!descriptor) return { ok: false, dot: "bad", label: "unreachable", device: "", descriptor: null };
-  const device = deviceName(descriptor);
-  if ("online" in descriptor) {   // cloud (mirror via heartbeat freshness)
-    return descriptor.online
-      ? { ok: true, dot: "ok", label: "cloud", device, descriptor }
-      : { ok: true, dot: "warn", label: "gateway offline", device, descriptor };
+export function deriveStatus(client, d) {
+  if (!d) return { ok: false, dot: "bad", label: "unreachable", device: "", descriptor: null };
+  const device = deviceName(d);
+  if ("online" in d) {   // cloud (mirror via heartbeat freshness)
+    return d.online
+      ? { ok: true, dot: "ok", label: "cloud", device, descriptor: d }
+      : { ok: true, dot: "warn", label: "gateway offline", device, descriptor: d };
   }
-  if (descriptor.controller_connected)   // local gateway, controller reachable
-    return { ok: true, dot: "ok", label: "live", device, descriptor };
-  return { ok: true, dot: "warn", label: "controller offline", device, descriptor };
+  const dest = d.dest || "";
+  const isRemote = dest.startsWith("\\\\") || dest.startsWith("//");
+  if (!dest) return { ok: true, dot: "warn", label: "no controller set", device: "", descriptor: d };
+  if (!d.controller_connected) return { ok: true, dot: "warn", label: "controller offline", device, descriptor: d };
+  if (!isRemote) return { ok: true, dot: "warn", label: "sandbox", device: "local folder", descriptor: d };
+  return { ok: true, dot: "ok", label: "live", device, descriptor: d };   // real reachable controller
 }
