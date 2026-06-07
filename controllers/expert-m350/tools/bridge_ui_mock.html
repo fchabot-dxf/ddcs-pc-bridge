@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DDCS Bridge — UI mockup</title>
+<style>
+  :root{
+    --bg:#0c0f14; --panel:#141a22; --panel2:#1b232e; --ink:#e6edf3; --dim:#8aa0b4;
+    --line:#26313d; --accent:#3fb950; --accent2:#58a6ff; --warn:#d29922; --bad:#f85149;
+    --bar:#1f6feb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.5 ui-sans-serif,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:18px}
+  h1{font:600 16px ui-monospace,Consolas,monospace;letter-spacing:.5px;margin:0}
+  .tabs{display:flex;gap:6px;margin:14px 0}
+  .tab{padding:7px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);
+       color:var(--dim);cursor:pointer;font-weight:600;font-size:13px}
+  .tab.on{background:var(--panel2);color:var(--ink);border-color:var(--accent2)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:12px 0}
+  .row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .spread{justify-content:space-between}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px}
+  .ok{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+  .info{background:var(--accent2)}
+  .muted{color:var(--dim);font-size:13px}
+  .mono{font-family:ui-monospace,Consolas,monospace}
+  .job{font:600 18px ui-monospace,Consolas,monospace}
+  .state{font:600 12px ui-monospace,monospace;padding:3px 9px;border-radius:6px;letter-spacing:1px}
+  .s-run{background:rgba(63,185,80,.15);color:var(--accent)}
+  .s-done{background:rgba(88,166,255,.15);color:var(--accent2)}
+  .s-wait{background:rgba(210,153,34,.15);color:var(--warn)}
+  .bar{height:22px;background:var(--panel2);border-radius:7px;overflow:hidden;border:1px solid var(--line);margin:10px 0 4px}
+  .fill{height:100%;width:0;background:linear-gradient(90deg,var(--bar),var(--accent2));
+        transition:width .5s ease;display:flex;align-items:center;justify-content:flex-end;
+        padding-right:8px;color:#fff;font:600 12px ui-monospace,monospace}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+  .stat .k{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
+  .stat .v{font:600 16px ui-monospace,monospace;margin-top:2px}
+  .q{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .q:last-child{border-bottom:0}
+  .pill{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--panel2);color:var(--dim)}
+  .pill.run{color:var(--accent)} .pill.queued{color:var(--warn)} .pill.done{color:var(--accent2)}
+  .log{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--dim);
+       max-height:120px;overflow:auto;margin:0;padding:0;list-style:none}
+  .log li{padding:2px 0;border-bottom:1px dashed #1c2530}
+  .drop{border:1.5px dashed var(--line);border-radius:10px;padding:26px;text-align:center;color:var(--dim);
+        background:var(--panel2)}
+  .demo{position:fixed;right:10px;bottom:8px;font:600 10px monospace;color:#5a6b7b;letter-spacing:1px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row spread">
+    <h1>◆ DDCS&nbsp;BRIDGE</h1>
+    <span class="muted mono" id="clock">--:--:--</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" id="t-fairy" onclick="show('fairy')">CNC-FAIRY · live tracker</div>
+    <div class="tab" id="t-asus" onclick="show('asus')">ASUS · submit &amp; watch</div>
+  </div>
+
+  <!-- ============ CNC-FAIRY view ============ -->
+  <div id="view-fairy">
+    <div class="card">
+      <div class="row spread">
+        <span><span class="dot ok"></span>Modbus slave <b class="mono">UP</b> · COM6 115200 8N1 · <span class="muted" id="frameage">last frame 2s ago</span></span>
+        <span><span class="dot ok"></span>Expert <b>linked</b> <span class="muted mono">192.168.0.99</span></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row spread">
+        <span class="job" id="job">bracket_v3.nc</span>
+        <span class="state s-run" id="state">RUNNING</span>
+      </div>
+      <div class="bar"><div class="fill" id="fill">0%</div></div>
+      <div class="grid">
+        <div class="stat"><div class="k">ETA</div><div class="v" id="eta">~8m12s</div></div>
+        <div class="stat"><div class="k">Operation</div><div class="v" id="op">3/7 · Drill 6mm</div></div>
+        <div class="stat"><div class="k">Line</div><div class="v" id="line">3000 / 20000</div></div>
+      </div>
+      <div class="muted mono" style="margin-top:10px">last beacon <b id="beacon">#153</b> · <span id="btime">14:32:07</span></div>
+    </div>
+
+    <div class="card">
+      <div class="muted" style="margin-bottom:6px">QUEUE</div>
+      <div id="queue"></div>
+    </div>
+
+    <div class="card">
+      <div class="muted" style="margin-bottom:6px">EVENTS</div>
+      <ul class="log" id="log"></ul>
+    </div>
+  </div>
+
+  <!-- ============ ASUS view ============ -->
+  <div id="view-asus" class="hidden">
+    <div class="card">
+      <div class="drop">⤓ &nbsp;Drop a <b>.nc</b> here &nbsp;·&nbsp; or <u>choose a file</u><br>
+        <span class="muted">it gets instrumented (beacons) and queued to the cloud</span></div>
+    </div>
+    <div class="card">
+      <div class="muted" style="margin-bottom:6px">MY QUEUE</div>
+      <div id="queue2"></div>
+    </div>
+    <div class="card">
+      <div class="row spread"><span class="job" id="job2">bracket_v3.nc</span><span class="state s-run">RUNNING</span></div>
+      <div class="bar"><div class="fill" id="fill2">0%</div></div>
+      <div class="muted mono" style="margin-top:8px" id="asusline">62% · ETA ~8m · op 3/7 (Drill 6mm) · line 3000/20000</div>
+      <div class="muted" style="margin-top:6px">↻ cloud-updated, ~3s behind the machine</div>
+    </div>
+  </div>
+</div>
+<div class="demo">DEMO · simulated data</div>
+
+<script>
+const Q = [
+  {name:"bracket_v3.nc", state:"run"},
+  {name:"plate_top.nc",  state:"queued"},
+  {name:"plate_bot.nc",  state:"queued"},
+  {name:"spoilboard.nc", state:"queued"},
+];
+let pct = 0, beacon = 1, total = 255, line = 0, lineMax = 20000, etaS = 530;
+
+function show(v){
+  document.getElementById('view-fairy').classList.toggle('hidden', v!=='fairy');
+  document.getElementById('view-asus').classList.toggle('hidden', v!=='asus');
+  document.getElementById('t-fairy').classList.toggle('on', v==='fairy');
+  document.getElementById('t-asus').classList.toggle('on', v==='asus');
+}
+function renderQueue(){
+  const html = Q.map(j=>{
+    const cls = j.state==='run'?'run':j.state==='done'?'done':'queued';
+    const label = j.state==='run'?('running '+pct+'%'):j.state;
+    return `<div class="q"><span class="pill ${cls}">${label}</span><span class="mono">${j.name}</span></div>`;
+  }).join('');
+  document.getElementById('queue').innerHTML = html;
+  document.getElementById('queue2').innerHTML = html;
+}
+function logEvent(msg){
+  const ul = document.getElementById('log');
+  const li = document.createElement('li');
+  li.textContent = new Date().toLocaleTimeString() + '  ' + msg;
+  ul.prepend(li);
+  while(ul.children.length>30) ul.removeChild(ul.lastChild);
+}
+function tick(){
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+  if(pct < 100){
+    pct += 1; beacon = Math.round(pct/100*total); line = Math.round(pct/100*lineMax);
+    eatS = Math.max(0, eatS); etaS = Math.round((100-pct)/100*530);
+    const op = pct<25?'1/7 · Face':pct<45?'2/7 · Adaptive':pct<70?'3/7 · Drill 6mm':pct<88?'5/7 · Contour':'7/7 · Finish';
+    document.getElementById('fill').style.width = pct+'%';
+    document.getElementById('fill').textContent = pct+'%';
+    document.getElementById('eta').textContent = '~'+Math.floor(etaS/60)+'m'+String(etaS%60).padStart(2,'0')+'s';
+    document.getElementById('op').textContent = op;
+    document.getElementById('line').textContent = line.toLocaleString()+' / '+lineMax.toLocaleString();
+    document.getElementById('beacon').textContent = '#'+beacon;
+    document.getElementById('btime').textContent = new Date().toLocaleTimeString();
+    // mirror onto ASUS view
+    document.getElementById('fill2').style.width = pct+'%';
+    document.getElementById('fill2').textContent = pct+'%';
+    document.getElementById('asusline').textContent =
+      pct+'% · ETA ~'+Math.floor(etaS/60)+'m · '+op+' · line '+line.toLocaleString()+'/'+lineMax.toLocaleString();
+    if(beacon%30===0) logEvent('beacon #'+beacon+' · '+pct+'%');
+  } else {
+    // finish + advance the queue
+    document.getElementById('state').textContent='DONE';
+    document.getElementById('state').className='state s-done';
+    logEvent('✓ '+Q[0].name+' complete — operator may load next');
+    Q[0].state='done';
+    const next = Q.find(j=>j.state==='queued');
+    if(next){ next.state='run';
+      document.getElementById('job').textContent=next.name;
+      document.getElementById('job2').textContent=next.name;
+      document.getElementById('job').classList.add('mono');
+      logEvent('delivered '+next.name+' → Expert (CNCDISK)');
+      setTimeout(()=>{document.getElementById('state').textContent='RUNNING';
+        document.getElementById('state').className='state s-run';},1200);
+    }
+    pct=0; beacon=1; etaS=530;
+  }
+  renderQueue();
+}
+logEvent('delivered bracket_v3.nc → Expert (CNCDISK)');
+renderQueue();
+setInterval(tick, 600);
+tick();
+</script>
+</body>
+</html>

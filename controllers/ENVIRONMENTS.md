@@ -35,7 +35,7 @@ verdict, not the IP.
 | Controller | DDCS **Expert M350** on Ultimate Bee 1010 — model **DDCSE-5T-standard**, panel "V1.1", **SW Ver 2025-06-19-00**, HW 2021-1213-23, S/N `Digital Dream-0350-3651980d6ca215fb-0000` | `[CONFIRMED on panel 2026-06-06]` |
 | Controller IP | `192.168.0.99` (manual-IP only) — **`#284 Network boot mode` was `Close`** (NIC disabled → "Cable IP: Disconnect"); set to `manu-IP` + reboot to bring Ethernet up | `[VERIFY after set]` |
 | Host/PC IP | `192.168.0.100` | `[VERIFY]` |
-| PC (laptops) | **ASUS A15 TUF** (hostname `____`) and **Panasonic Toughbook** = hostname **`CNC-FAIRY`** | Toughbook `[CONFIRMED 2026-06-06]`, ASUS `[TO FILL]` |
+| PC (laptops) | **ASUS A15 TUF** = hostname **`Fred-ASUS-TUF`** (this repo's dev box) and **Panasonic Toughbook** = hostname **`CNC-FAIRY`** | Toughbook `[CONFIRMED 2026-06-06]`, ASUS `[CONFIRMED 2026-06-06]` |
 | Network | **direct PC↔controller Ethernet link (no router)** → static IPs both ends; PC may host a `share` ("Net Disk") | `[VERIFY]` |
 | CNC-FAIRY wired NIC | adapter name `Ethernet`, MAC `4C-36-4E-94-D4-10`; set static `192.168.0.100/24` here | `[2026-06-06: link DOWN — controller off/cable unseated]` |
 | Serial | SABRENT FTDI = **`COM6`** on CNC-FAIRY (FTDI VID:PID 0403:6001, SER BG01LT65A); opens 115200 8N1 ✅. **Modbus on port 2**, port 1 = M3K | `[COM confirmed 2026-06-06; DB9 wiring to port 2 + #279 enable still pending]` |

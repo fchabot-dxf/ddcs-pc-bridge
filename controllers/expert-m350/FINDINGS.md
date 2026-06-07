@@ -20,6 +20,16 @@ bench-proven. **Do not assume V4.1 findings carry over** — see [`../README.md`
   - Args: X1=start var, X2=slave#, X3=start **register address**, X4=length in **bytes** (reg=2 bytes),
     **X5 = Modbus function code** (16=write-multiple per the MSETDATA example; 1=read in the MGETDATA
     example), X6=var receiving the **exception code** (0=OK). Controller pauses ~16 s for a reply.
+  - ⚠️⚠️⚠️ **`MGETDATA` (inbound pull) HARD-WEDGES the controller — REQUIRED A REBOOT** (live `mgetdata.nc`
+    test, studio 2026-06-06). The screen **froze** and did **not** recover on its own (not a 16 s timeout) —
+    a full reboot was needed, **same severity class as the `#1630` analyzer wedge.** `[CONFIRMED 2026-06-06]`
+    ⇒ **`MGETDATA` is the dangerous direction; `MSETDATA` (outbound push) is the proven-safe one.** Likely
+    cause: the PC slave did not answer the request (wrong register address `X3` / function code `X5` /
+    slave-id `X2`, or not serving that address), so the controller blocked forever instead of timing out.
+    **Do NOT run `MGETDATA` live** until the PC slave is proven to answer the exact registers with the
+    matching read function code (`X5`=1 coils / 3 holding / 4 input) for that slave — ideally validated
+    against a bench Modbus master first. Treat like `#1630`: each bad test = a reboot. **The linter should
+    flag live `MGETDATA` without a confirmed-responding slave.**
   - ⭐ **Each var #50–#499 carries exactly ONE byte (decimal 0–255)** — `MSETDATA` byte-packs them
     two-per-register. To move a value >255 (e.g. an error code), split/join with **`MDATA2BYTE`** /
     **`MBYTE2DATA`** across consecutive vars. `[CONFIRMED via RU manual `Инструкция.txt` 2026-06-06]`
@@ -34,6 +44,15 @@ bench-proven. **Do not assume V4.1 findings carry over** — see [`../README.md`
   address; byte packing is LITTLE-ENDIAN within a register (first var = LOW byte, next = high).** So reg =
   `#(n+1)<<8 | #n`. The PC-slave readback channel is proven end-to-end. (pymodbus 3.13 broke the classic
   datastore — **pin `pymodbus==3.6.9`**.)
+- ⭐⭐ **SABRENT FTDI cable CONFIRMED LIVE on the real port-2 link** (studio test) — the ferrule blocker is
+  cleared; the SABRENT is the working PC↔Expert serial adapter on the physical machine, not just bench/scope.
+  **Required to transact: `#279` Modbus-RTU = enable + a REBOOT** (with `#279`=NO the port is silent).
+  `[CONFIRMED on machine]`
+- **Which machine ran it:** the studio **`CNC-FAIRY`** Toughbook (SABRENT on **COM6**, the SMB/Modbus host).
+  The other studio PC is the **ASUS A15 TUF** (hostname **`Fred-ASUS-TUF`** — this repo's dev box). **`renderranchy`
+  is NOT a studio machine** — it is the **home/bench workstation** (V4.1 @ `10.0.0.x`); see
+  [`../ENVIRONMENTS.md`](../ENVIRONMENTS.md). The Expert is **not** on the home LAN — re-confirm exact COM
+  port + the macro/slave log next time on-site.
 - **Homebrew architecture:** PC runs a **Modbus SLAVE**; the DDCS (master) pushes status vars (#200+,
   incl. error/exception) via `MSETDATA` and reads commands via `MGETDATA`. Bidirectional, documented.
 
@@ -47,7 +66,7 @@ Photographed the **System → param list** on the studio Expert (model **DDCSE-5
 | `#267` | **Serial 2 baud rate** | `B115200` | **Serial 2 = Modbus data port** |
 | `#268` | **External keyboard type** | `other` | set to `M3K` to enable the M3K keypad (port 1) |
 | `#278` | USB keyboard type | `keyboard` | |
-| `#279` | **Modbus RTU** | `NO` | ⭐ **RESOLVED: #279 IS the Modbus-RTU enable** (not "Barcode file location" as the official manual claimed) — set to enable Modbus |
+| `#279` | **Modbus RTU** | `NO` | ⭐ **RESOLVED: #279 IS the Modbus-RTU enable** (not "Barcode file location" as the official manual claimed) — set to enable Modbus. **`#279`=enable + a REBOOT are REQUIRED for the live serial link** `[CONFIRMED on machine via SABRENT live test]` — with `#279`=NO the port does not transact. |
 | `#284` | **Network boot mode** | `Close` | ⭐ set to **manu-IP** to bring the Ethernet up (Cable IP shows "Disconnect" while Close) |
 | `#296` | **Serial 2 Parity method** | `None` | → Serial 2 = **8N1** |
 | `#297` | **Serial 2 Stop bits** | `1` | → Serial 2 = **8N1** |
@@ -309,7 +328,7 @@ Must be **Open**; machine reads **#576 = 1 (Open)** ✓. Numbering: panel **Pr76
 - [x] ~~Identify real param numbers for Modbus-RTU enable + port-2 baud~~ — **DONE**: `#279`=Modbus RTU,
       `#267`=Serial-2 baud (115200), `#296`/`#297`=Serial-2 parity/stop (8N1). See param table above.
 - [x] ~~Confirm `uservar` slot layout~~ — **DONE 2026-06-06**: `slot=#var−100`, range **#100–#549** (450×f64). See SMB section.
-- [ ] **Serial BLOCKED — needs a proper ferrule** to land pins 7/8/9. Then: wire SABRENT to port 2, find its COM on CNC-FAIRY, enable `#279`=Modbus, reboot.
+- [x] ~~**Serial BLOCKED — needs a proper ferrule**~~ — **CLEARED**: SABRENT wired to port 2 is **live on the real machine** (studio test). Recipe confirmed: `#279`=Modbus enable **+ reboot** required. Still TODO on-site: capture exact COM port + which laptop (`CNC-FAIRY`/`renderranchy`) + the macro/slave log.
 - [ ] Stand up a PC Modbus slave (`pymodbus`); confirm `MSETDATA` pushes #200+ to it.
 - [ ] Find the system var holding the live alarm code → log *which* error.
 - [ ] Port the V4.1 `M47` dispatcher to `sysstart.nc` here (file-reload trick over SMB) — **safety first** (E-stop).
