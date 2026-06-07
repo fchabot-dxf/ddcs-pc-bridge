@@ -33,11 +33,15 @@ explorer proven live on the V4.1 (2026-06-07).**
 - **Verify:** Gateway local-server + browser → deliver-only submit, sim-beacon tracked job, file list+delete,
   admin config. **Offline config works end-to-end.**
 
-## Phase 3 — Cloud path
+## Phase 3 — Cloud path  — 🔨 code built + locally verified; live deploy pending creds
 - **Goal:** cloud config — submit from anywhere; Gateway polls R2.
-- **Build:** the **Worker (authed R2 API)**; **Pages** deploy; **`CloudClient`**; Gateway R2 **heartbeat**.
-  Run **`--r2-check`** live (needs the S3 token).
-- **Verify:** console-on-Pages → R2 → Gateway picks up → status back → bar moves; Gateway-offline shows "queued."
+- **Built:** **Pages Functions** R2 API (`web/functions/api/[[path]].js`, same-origin as the console,
+  bearer-token auth) — the same `/api` contract the gateway serves locally, backed by R2; console client
+  gains `?api=`/`?token=` + Authorization; cloud connection status from `gateway/heartbeat.json`;
+  `wrangler.toml` (R2 binding) + `web/DEPLOY.md`. **Verified locally on emulated R2** (`wrangler pages dev`):
+  submit→queue→history→delete-command + console renders with "gateway offline" until a heartbeat exists.
+- **Live (needs creds):** R2 **S3 token** → `--r2-check`; `wrangler pages deploy`; end-to-end
+  console-on-Pages → R2 → Gateway picks up → status back. See [`web/DEPLOY.md`](web/DEPLOY.md).
 
 ## Phase 4 — JS instrumenter + beacon settings — ✅ DONE
 - **Goal:** Submit turns a raw `.nc` into a tracked job in the browser.

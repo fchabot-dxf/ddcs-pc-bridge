@@ -17,11 +17,24 @@ function resolveBase(opts) {
   } catch { return ""; }
 }
 
+// Bearer token for the cloud API (Pages Functions). Empty for the local gateway (no auth). Set via
+// `?token=...` (persisted) or localStorage; the gateway ignores Authorization, so it's harmless locally.
+function resolveToken() {
+  try {
+    const q = new URLSearchParams(location.search).get("token");
+    if (q != null) { localStorage.setItem("ddcs_token", q); return q; }
+    return localStorage.getItem("ddcs_token") || "";
+  } catch { return ""; }
+}
+
 export function makeClient(opts = {}) {
   const base = resolveBase(opts);   // "" = same-origin (gateway-served / offline). ?api= overrides for dev.
+  const tok = opts.token ?? resolveToken();
+  const authH = tok ? { Authorization: "Bearer " + tok } : {};
 
-  async function call(path, init) {
-    const r = await fetch(base + path, init);
+  async function call(path, init = {}) {
+    const r = await fetch(base + path, { ...init, headers: { ...authH, ...(init.headers || {}) } });
+    if (r.status === 401) throw new Error(`${path} -> 401 (set ?token=… for the cloud API)`);
     if (!r.ok) throw new Error(`${path} -> HTTP ${r.status}`);
     return r.json();
   }
@@ -44,9 +57,14 @@ export function makeClient(opts = {}) {
 // Connection status the UI renders (CONFIGS §6). For LocalClient a reachable gateway == "live".
 // (CloudClient will add the "mirror" / "offline" interpretations from the heartbeat later.)
 export function deriveStatus(client, descriptor) {
-  if (!descriptor) return { ok: false, dot: "bad", label: "gateway unreachable" };
+  if (!descriptor) return { ok: false, dot: "bad", label: "gateway unreachable", descriptor: null };
   const name = descriptor.machine_name || descriptor.controller_name || "gateway";
-  if (descriptor.controller_connected)
+  if ("online" in descriptor) {   // cloud (mirror via heartbeat freshness)
+    return descriptor.online
+      ? { ok: true, dot: "ok", label: `cloud · ${name}`, descriptor }
+      : { ok: true, dot: "warn", label: `gateway offline · ${name}`, descriptor };
+  }
+  if (descriptor.controller_connected)   // local gateway, controller reachable
     return { ok: true, dot: "ok", label: `live · ${name}`, descriptor };
-  return { ok: true, dot: "warn", label: `gateway up · controller offline`, descriptor };
+  return { ok: true, dot: "warn", label: "gateway up · controller offline", descriptor };
 }

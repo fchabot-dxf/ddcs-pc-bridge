@@ -1,0 +1,21 @@
+# Cloudflare Pages config — the DDCS Bridge Console (static UI + Pages Functions API).
+# Static console = ui/ ; cloud API = functions/api/[[path]].js (same origin as the UI).
+#
+# Deploy (from bridge-app/web):
+#   wrangler pages deploy ui --project-name ddcs-bridge
+# One-time on the project:
+#   - R2 binding BUCKET -> ddcs-bridge   (dashboard, or this [[r2_buckets]] block)
+#   - wrangler pages secret put ACCESS_TOKEN     (the shared console token)
+# Local smoke test (emulated R2, no cloud creds):
+#   wrangler pages dev ui --r2 BUCKET
+
+name = "ddcs-bridge"
+pages_build_output_dir = "ui"
+compatibility_date = "2024-11-01"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "ddcs-bridge"
+
+# ACCESS_TOKEN is a SECRET — never put it here. Set it with:
+#   wrangler pages secret put ACCESS_TOKEN
