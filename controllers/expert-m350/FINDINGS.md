@@ -247,10 +247,13 @@ From `DDCS_Variables_mapping_2025-01-04.xlsx` (skill), cross-checked against `sl
 - **`.<name>.nc.pos`** is created/updated only when a program actually RUNS (errored-at-parse programs
   leave none) → a pollable "did it execute" flag over SMB. `[CONFIRMED 2026-06-06]`
 
-### ✅ The SAFE readback pattern (proven, no wedge) — use this, not system-var reads
-`MODBUS_TEST.nc` proved that a program setting **ordinary user vars to known values** and `MSETDATA`-ing
-them transmits reliably and never wedges. So the readback design is **checkpoint sentinels**, NOT reading
-executor internals:
+### ✅ The SAFE readback pattern — CHECKPOINT SENTINELS — PROVEN LIVE `[CONFIRMED 2026-06-06]`
+`CHECKPOINT_TEST.nc` ran on the real machine: it set `#250 = 1/2/3` and `MSETDATA`'d at each step; the PC
+slave received all three frames (`[28417],[28418],[28419]` = bytes `1,111 / 2,111 / 3,111`), **no wedge,
+near-instant** (the ~16 s is a timeout, not a forced pause — it returns as soon as the slave replies). So
+the bridge's core goal is demonstrated: **the PC tracks how far a job got; the last checkpoint received =
+the last line reached before any stop/error.** This is the readback design — checkpoint sentinels, NOT
+reading executor internals:
 - The PC-pushed job sets `#250 = <checkpoint id>` then `MSETDATA[250,1,0,2,16,300]` at safe points
   (after header, after each phase, just before `M30`). The PC slave sees how far it got — last checkpoint
   received = last line reached before any stop/error. No system-var reads → no wedge.
