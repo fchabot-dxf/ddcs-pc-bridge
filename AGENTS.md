@@ -31,7 +31,8 @@ check which controller it was confirmed on.
 ```
 /AGENTS.md            ← you are here
 /CLAUDE.md            ← pointer to this file (auto-loaded by Claude Code)
-/README.md            ← human-facing project overview
+/README.md            ← human-facing project overview ("what is")
+/ROADMAP.md           ← what's next: bridge-app build order, open experiments, guardrails
 /bridge-app/          ← ⭐ THE APP: push a job anywhere → R2 → CNC-FAIRY → Expert (web/ + fairy/ + shared/PROTOCOL.md)
 /archive/             ← historical/superseded originals (DESIGN.md, EXPERIMENTS.md, RS232 probe
                         notes, packaged skill) — context only, NOT current (see archive/README.md)
