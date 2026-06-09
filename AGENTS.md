@@ -9,11 +9,14 @@ API for DDCS CNC controllers**. Most work here is done *by* AI agents. This file
 |---|---|---|
 | Model | **DDCS V4.1** | **DDCS Expert (M350)** |
 | Role | safe sandbox — no motors, no switches | production machine (Ultimate Bee 1010) |
-| On the LAN | `10.0.0.50` (live, reachable now) | not on this network |
+| Reachable from | home LAN `10.0.0.50` (SMB) | **studio**: SMB `\\192.168.0.99\` + Modbus on **COM6** (only when on-site) |
+| Status (2026-06-06) | bench-proven sandbox | **LIVE** — SMB R/W + Modbus + checkpoint readback all proven on the real machine |
 
 **They do NOT behave the same.** A fact confirmed on the V4.1 is *not* automatically true on the
-Expert, and vice-versa (the clearest example: **Modbus serial exists on the Expert but is absent
-from V4.1 firmware**). Before you rely on any finding, check which controller it was confirmed on.
+Expert, and vice-versa. Clearest examples confirmed this session: **Modbus serial exists on the Expert
+but is absent from V4.1 firmware**; and **`M47` means "restart-from-disk" on V4.1 but a count/pause macro
+on the Expert** — so the V4.1 file-overwrite dispatcher does NOT port. Before you rely on any finding,
+check which controller it was confirmed on.
 
 ➡️ **Never cross-apply a finding without checking [`controllers/README.md`](controllers/README.md)**
 (the comparison matrix). When you confirm something new, record it under the *correct* controller's
@@ -29,6 +32,7 @@ from V4.1 firmware**). Before you rely on any finding, check which controller it
 /AGENTS.md            ← you are here
 /CLAUDE.md            ← pointer to this file (auto-loaded by Claude Code)
 /README.md            ← human-facing project overview
+/bridge-app/          ← ⭐ THE APP: push a job anywhere → R2 → CNC-FAIRY → Expert (web/ + fairy/ + shared/PROTOCOL.md)
 /archive/             ← historical/superseded originals (DESIGN.md, EXPERIMENTS.md, RS232 probe
                         notes, packaged skill) — context only, NOT current (see archive/README.md)
 
