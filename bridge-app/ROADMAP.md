@@ -33,15 +33,18 @@ explorer proven live on the V4.1 (2026-06-07).**
 - **Verify:** Gateway local-server + browser → deliver-only submit, sim-beacon tracked job, file list+delete,
   admin config. **Offline config works end-to-end.**
 
-## Phase 3 — Cloud path  — 🔨 code built + locally verified; live deploy pending creds
+## Phase 3 — Cloud path  — ✅ DONE (deployed live 2026-06-07)
 - **Goal:** cloud config — submit from anywhere; Gateway polls R2.
 - **Built:** **Pages Functions** R2 API (`web/functions/api/[[path]].js`, same-origin as the console,
   bearer-token auth) — the same `/api` contract the gateway serves locally, backed by R2; console client
   gains `?api=`/`?token=` + Authorization; cloud connection status from `gateway/heartbeat.json`;
   `wrangler.toml` (R2 binding) + `web/DEPLOY.md`. **Verified locally on emulated R2** (`wrangler pages dev`):
   submit→queue→history→delete-command + console renders with "gateway offline" until a heartbeat exists.
-- **Live (needs creds):** R2 **S3 token** → `--r2-check`; `wrangler pages deploy`; end-to-end
-  console-on-Pages → R2 → Gateway picks up → status back. See [`web/DEPLOY.md`](web/DEPLOY.md).
+- **Live (DONE 2026-06-07):** R2 **S3 token** created + `--r2-check` PASSED; `wrangler pages deploy` →
+  console + Pages Functions live at **https://ddcs-bridge.pages.dev** (`ACCESS_TOKEN` secret set, R2
+  binding `BUCKET`). Cloud API verified: no-token→401, descriptor→`backend:r2`, POST job→tracked (real
+  R2 write). Gateway cloud mode runs on CNC-FAIRY; **not yet run against a live machine — that's Phase 6.**
+  See [`web/DEPLOY.md`](web/DEPLOY.md).
 
 ## Phase 4 — JS instrumenter + beacon settings — ✅ DONE
 - **Goal:** Submit turns a raw `.nc` into a tracked job in the browser.

@@ -52,6 +52,10 @@ class Config:
     open_browser: bool = False              # --open: pop the console in the default browser on start
     config_path: str = ""                   # where Setup persists config (empty -> ~/.ddcs-bridge/config.json)
 
+    # --- WebSocket telemetry (Command Center broadcast; telemetry.py) --------------
+    enable_ws: bool = False                 # --ws: start the WebSocket telemetry server
+    ws_port: int = 8766                     # WebSocket bind port (separate from the HTTP port 8765)
+
     @classmethod
     def from_env(cls, **overrides):
         """Build a Config, layering env vars (for secrets) then explicit overrides."""
