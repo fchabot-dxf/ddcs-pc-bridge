@@ -35,16 +35,11 @@ python modbus_slave.py --port COM6 --baud 115200 --slave 1
 ```
 Then run a macro that does `MSETDATA[...]` and watch the frames arrive.
 
-## `orchestrator.py` — instrument + push + watch (job progress readback)
-Injects checkpoint pushes into a job at `(CKPT ...)` markers (+ auto start/done), pushes it to CNCDISK over
-SMB, and watches the slave for checkpoints → reports how far the job got. **Only for instrumented progress
-tracking; not needed for normal jobs.** Checkpoints must sit at SAFE points (never mid-cut — `MSETDATA`
-briefly stalls the parser).
-```
-python orchestrator.py --self-test                                  # offline logic check
-python orchestrator.py instrument job.nc -o job.instr.nc            # offline
-python orchestrator.py run job.nc --port COM6 --ip 192.168.0.99     # instrument+push+watch
-```
+## `checkpoint_insert.py` — beacon instrumenter (reference implementation)
+Injects ≤255 time-paced **beacon** pushes (`#250=n` + `MSETDATA`) on Z-up retracts (safe points, never
+mid-cut), and emits the JSON map (percent/op/line/ETA per beacon) per [`bridge-app/shared/PROTOCOL.md`](../../../bridge-app/shared/PROTOCOL.md).
+This is the canonical instrumenter the `bridge-app` builds on. (Self-test passing.)
+`bridge_ui_mock.html` is the dashboard mockup — open it in a browser.
 
 ---
 

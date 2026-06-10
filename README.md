@@ -24,13 +24,27 @@ checking it.
   packaged skill). Context only — current truth lives under `controllers/`.
 - [`controllers/`](controllers/) — per-machine findings, build guides, and assets:
   - [`v4.1/FINDINGS.md`](controllers/v4.1/FINDINGS.md) · [`expert-m350/FINDINGS.md`](controllers/expert-m350/FINDINGS.md) · [`shared/ARCHITECTURE.md`](controllers/shared/ARCHITECTURE.md)
+  - [`expert-m350/tools/`](controllers/expert-m350/tools/) — PC-side tools: `ddcs_lint.py`, `modbus_slave.py`, `orchestrator.py` (see its [README](controllers/expert-m350/tools/README.md))
 
-## Current status (2026-06-06)
-- ✅ V4.1 file access over Ethernet (SMB) — full read/write.
-- ✅ `error.nc` does **not** fire on syntax errors — pivoted to a completion-sentinel + decoding the
-  controller's run-state `.env` (which appears to record the error line). Confirmation run pending.
-- ⏭️ Next: confirm the `.env` error-line field, find the alarm-code variable, and stand up the
-  Expert's Modbus channel.
+## Current status (2026-06-06) — **the Expert is LIVE**
+First in-person session with the real Expert M350 (studio). It went from documentation-only to a
+fully-reachable, characterized target:
+- ✅ **SMB read/write** to the Expert (`\\192.168.0.99\CNCDISK`+`SYSDISK`, guest=root) — V4.1 recipe ports as-is.
+- ✅ **Modbus RTU proven live** — `MSETDATA` frames received by a PC slave (115200 8N1; little-endian
+  byte pack). The Expert-only "rich channel" is real, not theoretical.
+- ✅ **Checkpoint-sentinel readback proven on the machine** — the PC tracks how far a job ran (the core goal).
+- ✅ **Run-state / alarm variable map** confirmed (`#1630` status, servo-alarm `#1000+`, etc.).
+- ✅ **PC-side tooling** in [`controllers/expert-m350/tools/`](controllers/expert-m350/tools/) — `ddcs_lint.py`
+  (syntax linter, validated vs ~70 macros), `modbus_slave.py`, `orchestrator.py`.
+- 🔑 **Error readback, resolved:** syntax errors are yacc-generated and drawn to the screen only (not
+  SMB-readable), so we **prevent** them with the linter and **detect** run failures via checkpoints;
+  hardware/system faults route through `error.nc`.
+- ⚠️ **Hazard learned live:** reading `#1630-#1636` (analyze-channel internals) from a job wedges the
+  controller (needs a reboot). The linter flags it.
+- 🏗️ The app this was building toward: **[`bridge-app/`](bridge-app/)** — push a job from anywhere → R2
+  bucket → CNC-FAIRY (`fairy/`) → Expert over SMB, with live **beacon** progress (`MSETDATA` push). See its
+  [`README`](bridge-app/README.md) + [`PROTOCOL`](bridge-app/shared/PROTOCOL.md). (`MGETDATA` inbound
+  **hard-wedges** the controller — the bridge is **push-only**.)
 
 ## Safety
 Bench V4.1 (no motors) is the dev rig. Autonomous control of the real Expert/Ultimate Bee requires an
