@@ -31,13 +31,16 @@ def _iso(ts):
 
 
 class Poller:
-    def __init__(self, backend, transfer, beacons, config, log=print):
+    def __init__(self, backend, transfer, beacons, config, log=print, on_checkpoint=None):
         self.backend = backend
         self.transfer = transfer
         self.beacons = beacons
         self.cfg = config
         self.log = log
         self.active = None     # None when idle; else the active-job dict
+        # Optional hook: on_checkpoint(n: int, active: dict) called after every new beacon.
+        # Injected by bridge.py when --ws is active; None = no-op (self-test / demo unaffected).
+        self.on_checkpoint = on_checkpoint
 
     # -- one iteration --------------------------------------------------------
     def tick(self):
@@ -120,6 +123,12 @@ class Poller:
             a["last_progress_at"] = ts
             a["events"].append(f"beacon {n}/{a['total']}")
             self.log(f"[poller] {a['name']}: beacon {n}/{a['total']}")
+            # Notify telemetry hook (injected by bridge.py --ws; None = no-op)
+            if self.on_checkpoint is not None:
+                try:
+                    self.on_checkpoint(n, dict(a))
+                except Exception:              # never let the hook crash the poller
+                    pass
             if self._is_complete(a, n):
                 a["events"].append("done")
                 self._put("done")                  # inbox copy already deleted at delivery

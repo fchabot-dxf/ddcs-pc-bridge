@@ -19,6 +19,7 @@ from .config import Config
 from .ops import Ops
 from .poller import Poller
 from .slave import ModbusBeaconSource, SimBeaconSource
+from .telemetry import TelemetryServer, make_checkpoint_payload
 from .transfer import Transfer
 
 
@@ -52,6 +53,17 @@ def run_loop(config):
     explorer.publish()                          # publish an initial CNCDISK listing at startup
     _publish_heartbeat(backend, ops, poller)    # announce liveness immediately
 
+    # --- WebSocket Command Center (opt-in: --ws) ---
+    telemetry_server = None
+    if config.enable_ws:
+        telemetry_server = TelemetryServer().start(config.host, config.ws_port)
+        print(f"[bridge] WebSocket Command Center at ws://{config.host}:{config.ws_port}")
+
+        def _on_checkpoint(n, active):
+            telemetry_server.broadcast(make_checkpoint_payload(n, active))
+
+        poller.on_checkpoint = _on_checkpoint
+
     server = None
     if config.serve:
         from .server import start_server
@@ -84,6 +96,8 @@ def run_loop(config):
     finally:
         if server is not None:
             server.shutdown()
+        if telemetry_server is not None:
+            telemetry_server.stop()
 
 
 # --------------------------------------------------------------------------- demo
@@ -462,6 +476,10 @@ def main(argv):
     ap.add_argument("--host", help="local server bind address (default 127.0.0.1; 0.0.0.0 for the LAN)")
     ap.add_argument("--http-port", dest="port", type=int, help="local server port (default 8765)")
     ap.add_argument("--console", dest="console_dir", help="static console dir to serve at /")
+    ap.add_argument("--ws", dest="enable_ws", action="store_true",
+                    help="start the WebSocket Command Center telemetry broadcast (default port 8766)")
+    ap.add_argument("--ws-port", dest="ws_port", type=int,
+                    help="WebSocket telemetry port (default 8766; change if 8766 is already in use)")
     ap.add_argument("--machine-id", dest="machine_id", help="expected controller id (enables verify-before-deliver)")
     ap.add_argument("--name", dest="machine_name", help="machine label, e.g. \"Ultimate Bee\"")
     args = ap.parse_args(argv)
@@ -474,6 +492,8 @@ def main(argv):
         machine_id=args.machine_id, machine_name=args.machine_name,
         enable_slave=(False if args.no_slave else None),
         open_browser=(True if args.open_browser else None),
+        enable_ws=(True if args.enable_ws else None),
+        ws_port=getattr(args, 'ws_port', None),
     )
     if args.provision:
         return provision(cfg, args.machine_id, args.machine_name)

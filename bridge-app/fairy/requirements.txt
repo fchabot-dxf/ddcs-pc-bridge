@@ -6,3 +6,7 @@
 pymodbus==3.6.9   # PIN: 3.13 broke the classic datastore (FINDINGS / tools/README). Needs pyserial.
 pyserial          # serial transport for pymodbus (the SABRENT FTDI / COM6)
 boto3             # R2 backend only (S3-compatible API); not needed for the local backend
+
+# Optional — WebSocket Command Center telemetry broadcast (--ws flag).
+# The gateway runs without this; telemetry.py will log a warning and skip WS startup.
+websockets>=12    # asyncio WebSocket server for the Command Center broadcast (telemetry.py)
